@@ -30,7 +30,9 @@ fn getGame(alloc: std.mem.Allocator) !game.Game {
     var g = try game.Game.init(AppRoot, &app_root, alloc);
     try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
     try g.plugin_handler.addPlugin(try player_movement.createPlugin(alloc));
-    try g.plugin_handler.addPlugin(try camera.createPlugin(alloc));
+
+    // broken
+    // try g.plugin_handler.addPlugin(try camera.createPlugin(alloc));
 
     return g;
 }
