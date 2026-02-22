@@ -64,4 +64,32 @@ pub fn build(b: *std.Build) !void {
 
         run_step.dependOn(&run_cmd.step);
     }
+
+    // ----------------------------------------------------------------
+    // Test step — discovers all *.test.zig files under src/ automatically
+    // ----------------------------------------------------------------
+    const test_step = b.step("test", "Run all tests");
+
+    var src_dir = try b.build_root.handle.openDir("src", .{ .iterate = true });
+    defer src_dir.close();
+
+    var walker = try src_dir.walk(b.allocator);
+    defer walker.deinit();
+
+    while (try walker.next()) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.basename, ".test.zig")) continue;
+
+        const rel_path = try std.fmt.allocPrint(b.allocator, "src/{s}", .{entry.path});
+
+        const test_mod = b.createModule(.{
+            .root_source_file = b.path(rel_path),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        const t = b.addTest(.{ .root_module = test_mod });
+        const run_t = b.addRunArtifact(t);
+        test_step.dependOn(&run_t.step);
+    }
 }

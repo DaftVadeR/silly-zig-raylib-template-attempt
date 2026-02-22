@@ -1,86 +1,44 @@
 const std = @import("std");
 const game = @import("game.zig");
 const plugin = @import("plugin.zig");
-const plugin_handler = @import("plugin-handler.zig");
 
-// Used for tests that dont test the initial bootstrapping process
-pub fn getGame() !game.Game {
-    var g = try game.Game.init(
-        std.testing.allocator,
-        dontDoAnything,
-        dontDoAnything,
-    );
+// Minimal no-op struct — used wherever the test doesn't care about callbacks.
+const Noop = struct {
+    pub fn update(_: *Noop) void {}
+    pub fn draw(_: *Noop) void {}
+};
 
-    try g.plugin_handler.addPlugin(
-        try plugin.Plugin.init(
-            g.allocator,
-            dontDoAnything,
-            dontDoAnything,
-        ),
-    );
+var noop = Noop{};
 
-    return g;
+fn noopPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
+    return plugin.Plugin.init(Noop, &noop, alloc);
 }
 
-fn dontDoAnything() void {}
+fn noopGame(alloc: std.mem.Allocator) !game.Game {
+    return game.Game.init(Noop, &noop, alloc);
+}
 
 test "Test game works with plugins" {
-    const gpa = std.testing.allocator;
+    var g = try noopGame(std.testing.allocator);
 
-    var g = try game.Game.init(
-        gpa,
-        dontDoAnything,
-        dontDoAnything,
-    );
+    try std.testing.expectEqual(@as(usize, 0), g.plugin_handler.plugins.items.len);
 
-    try std.testing.expectEqual(
-        @as(usize, 0),
-        g.plugin_handler.plugins.items.len,
-    );
+    try g.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
-    try g.plugin_handler.addPlugin(try plugin.Plugin.init(
-        gpa,
-        dontDoAnything,
-        dontDoAnything,
-    ));
-
-    try std.testing.expectEqual(
-        @as(usize, 1),
-        g.plugin_handler.plugins.items.len,
-    );
+    try std.testing.expectEqual(@as(usize, 1), g.plugin_handler.plugins.items.len);
 
     g.deinit();
 }
 
 test "Test plugins work with plugins" {
-    var g = try getGame();
-
-    try std.testing.expectEqual(
-        @as(usize, 1),
-        g.plugin_handler.plugins.items.len,
-    );
-
-    try std.testing.expectEqual(
-        g.plugin_handler.plugins.items.len,
-        @as(usize, 1),
-    );
+    var g = try noopGame(std.testing.allocator);
+    try g.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
     var firstPlugin = &g.plugin_handler.plugins.items[0];
 
-    // TODO: add convenience methods
-    try firstPlugin.plugin_handler.addPlugin(
-        try plugin.Plugin.init(
-            g.allocator,
-            dontDoAnything,
-            dontDoAnything,
-        ),
-    );
+    try firstPlugin.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
-    try std.testing.expectEqual(
-        @as(usize, 1),
-        firstPlugin.plugin_handler.plugins.items.len,
-    );
+    try std.testing.expectEqual(@as(usize, 1), firstPlugin.plugin_handler.plugins.items.len);
 
-    // Should clean up ALLLLL
     g.deinit();
 }

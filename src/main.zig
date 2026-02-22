@@ -5,23 +5,20 @@ const player = @import("./app/player.zig");
 const plugin = @import("./lib/plugin.zig");
 const plugin_handler = @import("./lib/plugin-handler.zig");
 
-fn draw() void {
-    std.debug.print("DRAWING", .{});
-}
+const AppRoot = struct {
+    pub fn update(_: *AppRoot) void {
+        std.debug.print("UPDATING\n", .{});
+    }
+    pub fn draw(_: *AppRoot) void {
+        std.debug.print("DRAWING\n", .{});
+    }
+};
 
-fn update() void {
-    std.debug.print("UPDATING", .{});
-}
+var app_root = AppRoot{};
 
 fn getGame(alloc: std.mem.Allocator) !game.Game {
-    var g = try game.Game.init(
-        alloc,
-        update,
-        draw,
-    );
-
-    player.addPlayerPlugin(alloc, &g);
-
+    var g = try game.Game.init(AppRoot, &app_root, alloc);
+    try g.addPlugin(try player.createPlugin(alloc));
     return g;
 }
 

@@ -3,52 +3,62 @@ const game = @import("game.zig");
 const plugin = @import("plugin.zig");
 
 // ------------------------------------------------------------
-// File-scoped counters — each test resets them before use
+// File-scoped counters — reset at the top of each test
 // ------------------------------------------------------------
 
 var game_update_count: usize = 0;
 var game_draw_count: usize = 0;
-
 var plugin_a_update_count: usize = 0;
 var plugin_a_draw_count: usize = 0;
-
 var plugin_b_update_count: usize = 0;
 var plugin_b_draw_count: usize = 0;
-
 var child_update_count: usize = 0;
 var child_draw_count: usize = 0;
 
 // ------------------------------------------------------------
-// Callback functions — each just increments its counter
+// Stub structs — one per counter pair, each with update/draw
 // ------------------------------------------------------------
 
-fn gameUpdate() void {
-    game_update_count += 1;
-}
-fn gameDraw() void {
-    game_draw_count += 1;
-}
+const GameRoot = struct {
+    pub fn update(_: *GameRoot) void {
+        game_update_count += 1;
+    }
+    pub fn draw(_: *GameRoot) void {
+        game_draw_count += 1;
+    }
+};
 
-fn pluginAUpdate() void {
-    plugin_a_update_count += 1;
-}
-fn pluginADraw() void {
-    plugin_a_draw_count += 1;
-}
+const PluginA = struct {
+    pub fn update(_: *PluginA) void {
+        plugin_a_update_count += 1;
+    }
+    pub fn draw(_: *PluginA) void {
+        plugin_a_draw_count += 1;
+    }
+};
 
-fn pluginBUpdate() void {
-    plugin_b_update_count += 1;
-}
-fn pluginBDraw() void {
-    plugin_b_draw_count += 1;
-}
+const PluginB = struct {
+    pub fn update(_: *PluginB) void {
+        plugin_b_update_count += 1;
+    }
+    pub fn draw(_: *PluginB) void {
+        plugin_b_draw_count += 1;
+    }
+};
 
-fn childUpdate() void {
-    child_update_count += 1;
-}
-fn childDraw() void {
-    child_draw_count += 1;
-}
+const ChildPlugin = struct {
+    pub fn update(_: *ChildPlugin) void {
+        child_update_count += 1;
+    }
+    pub fn draw(_: *ChildPlugin) void {
+        child_draw_count += 1;
+    }
+};
+
+var game_root = GameRoot{};
+var plugin_a = PluginA{};
+var plugin_b = PluginB{};
+var child_plugin = ChildPlugin{};
 
 // ------------------------------------------------------------
 // Tests
@@ -58,7 +68,7 @@ test "game update and draw call their own callbacks" {
     game_update_count = 0;
     game_draw_count = 0;
 
-    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
+    var g = try game.Game.init(GameRoot, &game_root, std.testing.allocator);
     defer g.deinit();
 
     g.update();
@@ -77,11 +87,11 @@ test "game update and draw propagate to plugins" {
     plugin_b_update_count = 0;
     plugin_b_draw_count = 0;
 
-    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
+    var g = try game.Game.init(GameRoot, &game_root, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginAUpdate, pluginADraw));
-    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginBUpdate, pluginBDraw));
+    try g.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
+    try g.addPlugin(try plugin.Plugin.init(PluginB, &plugin_b, std.testing.allocator));
 
     g.update();
     g.update();
@@ -89,7 +99,6 @@ test "game update and draw propagate to plugins" {
 
     try std.testing.expectEqual(@as(usize, 2), game_update_count);
     try std.testing.expectEqual(@as(usize, 1), game_draw_count);
-
     try std.testing.expectEqual(@as(usize, 2), plugin_a_update_count);
     try std.testing.expectEqual(@as(usize, 2), plugin_b_update_count);
     try std.testing.expectEqual(@as(usize, 1), plugin_a_draw_count);
@@ -104,17 +113,14 @@ test "nested plugin update and draw propagate recursively" {
     child_update_count = 0;
     child_draw_count = 0;
 
-    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
-
+    var g = try game.Game.init(GameRoot, &game_root, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginAUpdate, pluginADraw));
+    try g.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
 
-    // add a child plugin nested inside plugin A
-    const pluginA = &g.plugin_handler.plugins.items[0];
-
-    try pluginA.plugin_handler.addPlugin(
-        try plugin.Plugin.init(std.testing.allocator, childUpdate, childDraw),
+    const first = &g.plugin_handler.plugins.items[0];
+    try first.plugin_handler.addPlugin(
+        try plugin.Plugin.init(ChildPlugin, &child_plugin, std.testing.allocator),
     );
 
     g.update();
@@ -123,11 +129,8 @@ test "nested plugin update and draw propagate recursively" {
 
     try std.testing.expectEqual(@as(usize, 2), game_update_count);
     try std.testing.expectEqual(@as(usize, 1), game_draw_count);
-
     try std.testing.expectEqual(@as(usize, 2), plugin_a_update_count);
     try std.testing.expectEqual(@as(usize, 1), plugin_a_draw_count);
-
-    // child must have been called the same number of times as its parent
     try std.testing.expectEqual(@as(usize, 2), child_update_count);
     try std.testing.expectEqual(@as(usize, 1), child_draw_count);
 }

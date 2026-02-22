@@ -8,9 +8,8 @@ pub const PlayerPlugin = struct {
     transform: rl.Vector2,
     speed: u16,
 
-    pub fn draw(self: PlayerPlugin) void {
-        std.debug.print("drawing plyaer", .{self.speed});
-
+    pub fn draw(self: *PlayerPlugin) void {
+        _ = self;
         rl.drawTriangle(
             rl.Vector2{ .x = 0, .y = 0 },
             rl.Vector2{ .x = 100, .y = 100 },
@@ -20,8 +19,8 @@ pub const PlayerPlugin = struct {
     }
 
     pub fn update(self: *PlayerPlugin) void {
-        std.debug.print("updating plyaer", .{self.speed});
         self.speed = 200;
+        self.position.x += @floatFromInt(self.speed);
     }
 };
 
@@ -31,10 +30,6 @@ pub var player = PlayerPlugin{
     .transform = rl.Vector2{ .x = 0, .y = 0 },
 };
 
-pub fn addPlayerPlugin(alloc: std.mem.Allocator, g: *game.Game) void {
-    g.plugin_handler.addPlugin(plugin.Plugin.init(
-        alloc,
-        player.update,
-        player.draw,
-    ));
+pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
+    return plugin.Plugin.init(PlayerPlugin, &player, alloc);
 }

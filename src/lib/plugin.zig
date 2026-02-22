@@ -2,18 +2,30 @@ const std = @import("std");
 const plugin_handler = @import("plugin-handler.zig");
 
 pub const Plugin = struct {
-    update_fn: *const fn () void,
-    draw_fn: *const fn () void,
+    ctx: *anyopaque,
+    update_fn: *const fn (*anyopaque) void,
+    draw_fn: *const fn (*anyopaque) void,
     plugin_handler: plugin_handler.PluginHandler,
 
-    pub fn init(
-        alloc: std.mem.Allocator,
-        update_fn: *const fn () void,
-        draw_fn: *const fn () void,
-    ) !Plugin {
+    /// Pass any struct type T and a pointer to an instance of it.
+    /// T must have `update` and `draw` methods that take `*T`.
+    /// The plugin does NOT own the instance — the caller must keep it alive.
+    pub fn init(comptime T: type, instance: *T, alloc: std.mem.Allocator) !Plugin {
+        const gen = struct {
+            fn update(ctx: *anyopaque) void {
+                const self: *T = @ptrCast(@alignCast(ctx));
+                self.update();
+            }
+            fn draw(ctx: *anyopaque) void {
+                const self: *T = @ptrCast(@alignCast(ctx));
+                self.draw();
+            }
+        };
+
         return Plugin{
-            .update_fn = update_fn,
-            .draw_fn = draw_fn,
+            .ctx = instance,
+            .update_fn = gen.update,
+            .draw_fn = gen.draw,
             .plugin_handler = try plugin_handler.PluginHandler.init(alloc),
         };
     }
@@ -23,12 +35,12 @@ pub const Plugin = struct {
     }
 
     pub fn update(self: *Plugin) void {
-        self.update_fn();
+        self.update_fn(self.ctx);
         self.plugin_handler.update();
     }
 
     pub fn draw(self: *Plugin) void {
-        self.draw_fn();
+        self.draw_fn(self.ctx);
         self.plugin_handler.draw();
     }
 };
