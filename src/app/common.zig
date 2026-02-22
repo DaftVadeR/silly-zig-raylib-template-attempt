@@ -1,6 +1,6 @@
 pub const ScreenSize = struct {
-    x: u32,
-    y: u32,
+    x: f32,
+    y: f32,
 };
 
 pub const P720 = ScreenSize{ .x = 1280, .y = 720 };
