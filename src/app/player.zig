@@ -1,8 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
-const game = @import("../lib/game.zig");
 const plugin = @import("../lib/plugin.zig");
-
 const weapon = @import("weapon.zig");
 const sprite = @import("sprite.zig");
 
@@ -16,79 +14,51 @@ const CharacterAttributes = struct {
     magic: f32,
     speed: f32,
     attack_speed: f32,
-
-    // fn deinit(alloc: std.mem.Allocator) void {
-    //
-    // }
 };
 
 pub const PlayerClass = struct {
+    allocator: std.mem.Allocator,
+    texture: rl.Texture2D,
     attributes: CharacterAttributes,
     weapons: []weapon.Weapon,
     anims: []sprite.SpriteAnim,
     active_anim: usize,
     player_type: PlayerKind,
 
-    pub fn init(
-        alloc: std.mem.Allocator,
-        playerKind: PlayerKind,
-    ) !PlayerClass {
+    pub fn init(alloc: std.mem.Allocator, playerKind: PlayerKind) !PlayerClass {
         return switch (playerKind) {
-            .Karen => getKnight(alloc, playerKind),
-            .Knight => getKnight(alloc, playerKind),
+            .Karen, .Knight => getKnight(alloc, playerKind),
         };
-
-        // return PlayerClass{
-        //     .attributes = attributes,
-        //     .default_weapons = defWeapons,
-        //     .anims = anims,
-        // };
     }
 
     pub fn deinit(self: *PlayerClass) void {
-        std.debug.print("Deinitializing CharacterAttributes...\n", .{});
-
-        // self.attributes.deinit();
-
-        for (self.anims) |*anim| {
-            anim.denit();
-        }
-
+        rl.unloadTexture(self.texture);
         self.allocator.free(self.anims);
-        self.allocator.free(self.default_weapons);
+        self.allocator.free(self.weapons);
     }
 };
 
-pub fn getKnight(allocator: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
-    var anims = try allocator.alloc(sprite.SpriteAnim, 2);
-
-    var weapons = try allocator.alloc(weapon.Weapon, 1);
-
-    const texture = try rl.Texture.init(
-        "resources/images/player/knight_spritesheet.png",
-    );
-
-    anims[0] = try sprite.SpriteAnim.init(
-        texture,
-        16,
-        16,
-        6,
-        12,
-        10,
-    );
-
-    anims[1] = try sprite.SpriteAnim.init(
-        texture,
-        16,
-        16,
-        6,
-        12,
-        10,
-    );
+pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
+    var anims = try alloc.alloc(sprite.SpriteAnim, 2);
+    var weapons = try alloc.alloc(weapon.Weapon, 1);
 
     weapons[0] = weapon.energyWeapon;
 
+    // Build PlayerClass first so texture has a stable address.
+    // Anims are initialised with a placeholder — fixupAnims patches the pointer below.
+    const texture = try rl.Texture.init("resources/images/player/knight_spritesheet.png");
+
+    // anims[0] = idle (frames 0–5), anims[1] = run (frames 6–11).
+    // We pass &player.player_detail's texture after onLoad sets it.
+    // Since player_detail is ?PlayerClass on the file-scoped player instance,
+    // we store a temporary dummy texture reference here and fix it up in onLoad
+    // once player_detail has a stable address.
+    anims[0] = sprite.SpriteAnim.init(&texture, 16, 16, 6, 0, 6, 10);
+    anims[1] = sprite.SpriteAnim.init(&texture, 16, 16, 6, 6, 6, 10);
+
     return PlayerClass{
+        .allocator = alloc,
+        .texture = texture,
         .attributes = .{
             .speed = 50,
             .magic = 50,
@@ -107,64 +77,32 @@ pub const PlayerPlugin = struct {
     transform: rl.Vector2,
     player_detail: ?PlayerClass,
 
-    // last_run: usize,
-    // run_level: usize,
-    // experience: f128,
-    // level: i32,
-
     pub fn draw(self: *PlayerPlugin) void {
-        std.debug.print("drawing player\n", .{});
-
-        if (self.player_detail) |pd| {
-            pd.anims[0].draw(
-                self.position,
-                5.0,
-                rl.Color.white,
-            );
+        if (self.player_detail) |*pd| {
+            pd.anims[pd.active_anim].draw(self.position, 5.0, rl.Color.white, self.transform.x);
         }
-
-        // rl.drawTriangle(
-        //     rl.Vector2{ .x = 0, .y = 0 },
-        //     rl.Vector2{ .x = 100, .y = 100 },
-        //     rl.Vector2{ .x = 200, .y = 200 },
-        //     rl.Color.blue,
-        // );
-        //
-        // rl.drawRectangle(
-        //     @as(i32, 0),
-        //     @as(i32, 0),
-        //     @as(i32, 300),
-        //     @as(i32, 300),
-        //     rl.Color.blue,
-        // );
     }
 
-    pub fn update(_: *PlayerPlugin) void {
-        std.debug.print("updating player\n", .{});
-
-        // self.speed = 200;
-        // if (self.player_detail) |pd| {
-        // self.position.x += pd.attributes.speed;
-        // }
-    }
+    pub fn update(_: *PlayerPlugin) void {}
 
     pub fn onLoad(self: *PlayerPlugin, alloc: std.mem.Allocator) !void {
-        std.debug.print("player loaded\n", .{});
-
         self.player_detail = try PlayerClass.init(alloc, PlayerKind.Knight);
+        // player_detail is now assigned and stable on the file-scoped player instance.
+        // Patch the texture pointer in each anim to point at the owned texture field.
+        if (self.player_detail) |*pd| {
+            for (pd.anims) |*anim| {
+                anim.texture = &pd.texture;
+            }
+        }
     }
 };
 
 pub var player = PlayerPlugin{
     .position = rl.Vector2{ .x = 0, .y = 5 },
-    .transform = rl.Vector2{ .x = 0, .y = 0 },
+    .transform = rl.Vector2{ .x = 1, .y = 0 }, // x: 1 = facing right, -1 = facing left
     .player_detail = null,
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
-    return plugin.Plugin.init(
-        PlayerPlugin,
-        &player,
-        alloc,
-    );
+    return plugin.Plugin.init(PlayerPlugin, &player, alloc);
 }
