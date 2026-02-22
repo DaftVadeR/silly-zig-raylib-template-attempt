@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const game = @import("./lib/game.zig");
 const player = @import("./app/player.zig");
+const player_movement = @import("./app/player-movement.zig");
 const plugin = @import("./lib/plugin.zig");
 const plugin_handler = @import("./lib/plugin-handler.zig");
 
@@ -20,6 +21,7 @@ var app_root = AppRoot{};
 fn getGame(alloc: std.mem.Allocator) !game.Game {
     var g = try game.Game.init(AppRoot, &app_root, alloc);
     try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
+    try g.plugin_handler.addPlugin(try player_movement.createPlugin(alloc));
 
     return g;
 }

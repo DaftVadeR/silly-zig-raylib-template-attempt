@@ -137,11 +137,13 @@ pub const PlayerPlugin = struct {
         // );
     }
 
-    pub fn update(_: *PlayerPlugin) void {
+    pub fn update(self: *PlayerPlugin) void {
         std.debug.print("updating player\n", .{});
 
         // self.speed = 200;
-        // self.position.x += @floatFromInt(self.speed);
+        if (self.player_detail) |pd| {
+            self.position.x += pd.attributes.speed;
+        }
     }
 
     pub fn onLoad(self: *PlayerPlugin, alloc: std.mem.Allocator) !void {
@@ -152,7 +154,7 @@ pub const PlayerPlugin = struct {
 };
 
 pub var player = PlayerPlugin{
-    .position = rl.Vector2{ .x = 0, .y = 0 },
+    .position = rl.Vector2{ .x = 0, .y = 5 },
     .transform = rl.Vector2{ .x = 0, .y = 0 },
     .player_detail = null,
 };
