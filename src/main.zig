@@ -54,14 +54,15 @@ pub fn main() anyerror!void {
         //
         //----------------------------------------------------------------------------------
         g.update();
-        g.draw();
 
         // Draw
         //----------------------------------------------------------------------------------
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(.white);
+        rl.clearBackground(.black);
+
+        g.draw();
 
         rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
         //----------------------------------------------------------------------------------
