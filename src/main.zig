@@ -1,6 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
 const game = @import("./lib/game.zig");
+const player = @import("./app/player.zig");
+const plugin = @import("./lib/plugin.zig");
+const plugin_handler = @import("./lib/plugin-handler.zig");
 
 fn draw() void {
     std.debug.print("DRAWING", .{});
@@ -8,6 +11,18 @@ fn draw() void {
 
 fn update() void {
     std.debug.print("UPDATING", .{});
+}
+
+fn getGame(alloc: std.mem.Allocator) !game.Game {
+    var g = try game.Game.init(
+        alloc,
+        update,
+        draw,
+    );
+
+    player.addPlayerPlugin(alloc, &g);
+
+    return g;
 }
 
 pub fn main() anyerror!void {
@@ -29,9 +44,10 @@ pub fn main() anyerror!void {
     // use page allocator later as base, with arena on top
     var arena = std.heap.ArenaAllocator.init(allocatorBase);
     defer arena.deinit();
+
     const allocator = arena.allocator();
 
-    var g = try game.Game.init(allocator, update, draw);
+    var g = try getGame(allocator);
 
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
