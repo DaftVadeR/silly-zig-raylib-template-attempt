@@ -26,6 +26,7 @@ pub const PlayerClass = struct {
     attributes: CharacterAttributes,
     weapons: []weapon.Weapon,
     anims: []sprite.SpriteAnim,
+    active_anim: usize,
     player_type: PlayerKind,
 
     pub fn init(
@@ -97,6 +98,7 @@ pub fn getKnight(allocator: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
         .anims = anims,
         .weapons = weapons,
         .player_type = kind,
+        .active_anim = 0,
     };
 }
 
@@ -137,13 +139,13 @@ pub const PlayerPlugin = struct {
         // );
     }
 
-    pub fn update(self: *PlayerPlugin) void {
+    pub fn update(_: *PlayerPlugin) void {
         std.debug.print("updating player\n", .{});
 
         // self.speed = 200;
-        if (self.player_detail) |pd| {
-            self.position.x += pd.attributes.speed;
-        }
+        // if (self.player_detail) |pd| {
+        // self.position.x += pd.attributes.speed;
+        // }
     }
 
     pub fn onLoad(self: *PlayerPlugin, alloc: std.mem.Allocator) !void {

@@ -49,6 +49,7 @@ pub const SpriteAnim = struct {
     pub fn draw(self: SpriteAnim, pos: rl.Vector2, scale: f32, tint: rl.Color) void {
         const col = self.currentFrame % self.cols;
         const row = self.currentFrame / self.cols;
+
         const src = rl.Rectangle{
             .x = @as(f32, @floatFromInt(col)) * self.frameW,
             .y = @as(f32, @floatFromInt(row)) * self.frameH,
