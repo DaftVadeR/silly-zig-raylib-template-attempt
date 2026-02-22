@@ -11,8 +11,9 @@ const common = @import("./app/common.zig");
 
 // game file plugins
 const player = @import("./app/player.zig");
+const level = @import("./app/level.zig");
 const player_movement = @import("./app/player-movement.zig");
-const camera = @import("./app/camera.zig");
+// const camera = @import("./app/camera.zig");
 
 const AppRoot = struct {
     pub fn update(_: *AppRoot) void {
@@ -28,6 +29,7 @@ var app_root = AppRoot{};
 
 fn getGame(alloc: std.mem.Allocator) !game.Game {
     var g = try game.Game.init(AppRoot, &app_root, alloc);
+    try g.plugin_handler.addPlugin(try level.createPlugin(alloc));
     try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
     try g.plugin_handler.addPlugin(try player_movement.createPlugin(alloc));
 
@@ -57,7 +59,7 @@ pub fn main() anyerror!void {
     //
     defer rl.closeWindow(); // Close window and OpenGL context
 
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    rl.setTargetFPS(120); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
 
     var dba: std.heap.DebugAllocator(.{}) = .init;

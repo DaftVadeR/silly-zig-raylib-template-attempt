@@ -61,7 +61,7 @@ pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
         .allocator = alloc,
         .texture = texture,
         .attributes = .{
-            .speed = 100,
+            .speed = 300,
             .magic = 50,
             .strength = 50,
             .attack_speed = 50,
