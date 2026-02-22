@@ -6,6 +6,8 @@ const player_movement = @import("./app/player-movement.zig");
 const plugin = @import("./lib/plugin.zig");
 const plugin_handler = @import("./lib/plugin-handler.zig");
 
+const common = @import("./app/common.zig");
+
 const AppRoot = struct {
     pub fn update(_: *AppRoot) void {
         std.debug.print("UPDATING\n", .{});
@@ -29,10 +31,21 @@ fn getGame(alloc: std.mem.Allocator) !game.Game {
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const screenWidth = 800;
-    const screenHeight = 450;
+    const screenWidth = common.P1080.x;
+    const screenHeight = common.P1080.y;
 
-    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    rl.initWindow(screenWidth, screenHeight, "Simple Zig template");
+    rl.toggleFullscreen();
+
+    // rl.setWindowState(.{
+    //     .window_undecorated = true,
+    //     .window_maximized = true,
+    //     // .borderless_windowed_mode = true,
+    //     .fullscreen_mode = true,
+    // });
+    // rl.setWindowState(rl.ConfigFlags.bo)
+
+    //
     defer rl.closeWindow(); // Close window and OpenGL context
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -64,7 +77,7 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(.black);
+        rl.clearBackground(.ray_white);
 
         g.draw();
 

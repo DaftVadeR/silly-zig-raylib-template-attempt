@@ -33,6 +33,7 @@ pub const PlayerClass = struct {
 
     pub fn deinit(self: *PlayerClass) void {
         rl.unloadTexture(self.texture);
+
         self.allocator.free(self.anims);
         self.allocator.free(self.weapons);
     }
@@ -60,7 +61,7 @@ pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
         .allocator = alloc,
         .texture = texture,
         .attributes = .{
-            .speed = 50,
+            .speed = 100,
             .magic = 50,
             .strength = 50,
             .attack_speed = 50,

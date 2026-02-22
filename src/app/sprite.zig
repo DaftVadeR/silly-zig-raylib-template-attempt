@@ -3,10 +3,8 @@ const rl = @import("raylib");
 pub const SpriteAnim = struct {
     // Borrowed — the caller loads and owns the texture.
     texture: *const rl.Texture2D,
-    // Size of a single frame on the sheet, in pixels.
     frame_w: f32,
     frame_h: f32,
-    // How many frames wide the sheet is (used to convert a flat index to col/row).
     cols: usize,
     // Index of the first frame in this animation on the sheet.
     from_frame: usize,
@@ -42,6 +40,7 @@ pub const SpriteAnim = struct {
 
     pub fn update(self: *SpriteAnim, dt: f32) void {
         self.timer += dt;
+
         if (self.timer >= 1.0 / self.fps) {
             self.timer -= 1.0 / self.fps;
             self.current_frame = (self.current_frame + 1) % self.total_frames;
