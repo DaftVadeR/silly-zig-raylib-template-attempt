@@ -1,34 +1,64 @@
 const std = @import("std");
 const game = @import("game.zig");
 
+// Used for tests that dont test the initial bootstrapping process
+fn getGame() !game.Game {
+    var g = try game.Game.init(std.testing.allocator);
+
+    try g.plugin_handler.addPlugin(
+        try game.Plugin.init(g.allocator),
+    );
+
+    return g;
+}
+
 test "Test game works with plugins" {
     const gpa = std.testing.allocator;
 
     var g = try game.Game.init(gpa);
 
     try std.testing.expectEqual(
-        @as(usize, 10),
-        g.plugin_handler.plugins_allocated,
-    );
-
-    try std.testing.expectEqual(
         @as(usize, 0),
-        g.plugin_handler.plugins_added,
+        g.plugin_handler.plugins.items.len,
     );
 
     try g.plugin_handler.addPlugin(try game.Plugin.init(gpa));
 
     try std.testing.expectEqual(
-        @as(usize, 10),
-        g.plugin_handler.plugins_allocated,
+        @as(usize, 1),
+        g.plugin_handler.plugins.items.len,
+    );
+
+    g.deinit();
+}
+
+test "Test plugins work with plugins" {
+    var g = try getGame();
+
+    try std.testing.expectEqual(
+        @as(usize, 1),
+        g.plugin_handler.plugins.items.len,
+    );
+
+    try std.testing.expectEqual(
+        g.plugin_handler.plugins.items.len,
+        @as(usize, 1),
+    );
+
+    var firstPlugin = &g.plugin_handler.plugins.items[0];
+
+    // TODO: add convenience methods
+    try firstPlugin.plugin_handler.addPlugin(
+        try game.Plugin.init(g.allocator),
     );
 
     try std.testing.expectEqual(
         @as(usize, 1),
-        g.plugin_handler.plugins_added,
+        firstPlugin.plugin_handler.plugins.items.len,
     );
 
-    try g.deinit();
+    // Should clean up ALLLLL
+    g.deinit();
 }
 
 // var list: std.ArrayList(i32) = .empty;
