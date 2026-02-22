@@ -9,26 +9,32 @@ const game = @import("game.zig");
 const MockA = struct {
     update_calls: usize = 0,
     draw_calls: usize = 0,
+    load_calls: usize = 0,
 
     pub fn update(self: *MockA) void {
         self.update_calls += 1;
     }
-
     pub fn draw(self: *MockA) void {
         self.draw_calls += 1;
+    }
+    pub fn onLoad(self: *MockA, _: std.mem.Allocator) !void {
+        self.load_calls += 1;
     }
 };
 
 const MockB = struct {
     update_calls: usize = 0,
     draw_calls: usize = 0,
+    load_calls: usize = 0,
 
     pub fn update(self: *MockB) void {
         self.update_calls += 1;
     }
-
     pub fn draw(self: *MockB) void {
         self.draw_calls += 1;
+    }
+    pub fn onLoad(self: *MockB, _: std.mem.Allocator) !void {
+        self.load_calls += 1;
     }
 };
 
@@ -46,6 +52,21 @@ test "plugin update and draw call the bound instance" {
     try std.testing.expectEqual(@as(usize, 1), a.draw_calls);
 }
 
+test "onLoad is called on the bound instance when added to a plugin handler" {
+    var a = MockA{};
+    var b = MockB{};
+
+    var g = try game.Game.init(MockA, &a, std.testing.allocator);
+    defer g.deinit();
+
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(MockB, &b, std.testing.allocator));
+
+    // onLoad fires once at add time, not during update/draw
+    try std.testing.expectEqual(@as(usize, 1), b.load_calls);
+    try std.testing.expectEqual(@as(usize, 0), b.update_calls);
+    try std.testing.expectEqual(@as(usize, 0), b.draw_calls);
+}
+
 test "two plugins with different types call their own instances independently" {
     var a = MockA{};
     var b = MockB{};
@@ -53,16 +74,13 @@ test "two plugins with different types call their own instances independently" {
     var g = try game.Game.init(MockA, &a, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(MockB, &b, std.testing.allocator));
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(MockB, &b, std.testing.allocator));
 
     g.update();
     g.draw();
 
-    // a is the game root
     try std.testing.expectEqual(@as(usize, 1), a.update_calls);
     try std.testing.expectEqual(@as(usize, 1), a.draw_calls);
-
-    // b is the plugin — must have been called independently
     try std.testing.expectEqual(@as(usize, 1), b.update_calls);
     try std.testing.expectEqual(@as(usize, 1), b.draw_calls);
 }
@@ -74,16 +92,13 @@ test "two plugins of the same type each have independent instance state" {
     var g = try game.Game.init(MockA, &a1, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(MockA, &a2, std.testing.allocator));
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(MockA, &a2, std.testing.allocator));
 
     g.update();
     g.update();
 
-    // a1 is the game root, a2 is the plugin — same type, different instances
     try std.testing.expectEqual(@as(usize, 2), a1.update_calls);
     try std.testing.expectEqual(@as(usize, 2), a2.update_calls);
-
-    // draw was never called — confirm neither instance registered any
     try std.testing.expectEqual(@as(usize, 0), a1.draw_calls);
     try std.testing.expectEqual(@as(usize, 0), a2.draw_calls);
 }

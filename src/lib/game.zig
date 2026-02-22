@@ -34,10 +34,6 @@ pub const Game = struct {
         self.plugin_handler.deinit();
     }
 
-    pub fn addPlugin(self: *Game, p: plugin.Plugin) !void {
-        try self.plugin_handler.addPlugin(p);
-    }
-
     pub fn update(self: *Game) void {
         self.update_fn(self.ctx);
         self.plugin_handler.update();

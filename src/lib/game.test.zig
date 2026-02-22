@@ -6,6 +6,7 @@ const plugin = @import("plugin.zig");
 const Noop = struct {
     pub fn update(_: *Noop) void {}
     pub fn draw(_: *Noop) void {}
+    pub fn onLoad(_: *Noop, _: std.mem.Allocator) !void {}
 };
 
 var noop = Noop{};
@@ -18,27 +19,25 @@ fn noopGame(alloc: std.mem.Allocator) !game.Game {
     return game.Game.init(Noop, &noop, alloc);
 }
 
-test "Test game works with plugins" {
+test "game works with plugins" {
     var g = try noopGame(std.testing.allocator);
+    defer g.deinit();
 
     try std.testing.expectEqual(@as(usize, 0), g.plugin_handler.plugins.items.len);
 
     try g.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
     try std.testing.expectEqual(@as(usize, 1), g.plugin_handler.plugins.items.len);
-
-    g.deinit();
 }
 
-test "Test plugins work with plugins" {
+test "plugins can have nested child plugins" {
     var g = try noopGame(std.testing.allocator);
+    defer g.deinit();
+
     try g.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
-    var firstPlugin = &g.plugin_handler.plugins.items[0];
+    const first = &g.plugin_handler.plugins.items[0];
+    try first.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
 
-    try firstPlugin.plugin_handler.addPlugin(try noopPlugin(std.testing.allocator));
-
-    try std.testing.expectEqual(@as(usize, 1), firstPlugin.plugin_handler.plugins.items.len);
-
-    g.deinit();
+    try std.testing.expectEqual(@as(usize, 1), first.plugin_handler.plugins.items.len);
 }

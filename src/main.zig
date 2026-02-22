@@ -12,13 +12,14 @@ const AppRoot = struct {
     pub fn draw(_: *AppRoot) void {
         std.debug.print("DRAWING\n", .{});
     }
+    pub fn onLoad(_: *AppRoot, _: std.mem.Allocator) !void {}
 };
 
 var app_root = AppRoot{};
 
 fn getGame(alloc: std.mem.Allocator) !game.Game {
     var g = try game.Game.init(AppRoot, &app_root, alloc);
-    try g.addPlugin(try player.createPlugin(alloc));
+    try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
     return g;
 }
 

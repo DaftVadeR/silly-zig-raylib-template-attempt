@@ -16,7 +16,7 @@ var child_update_count: usize = 0;
 var child_draw_count: usize = 0;
 
 // ------------------------------------------------------------
-// Stub structs — one per counter pair, each with update/draw
+// Stub structs — one per counter pair, each with update/draw/onLoad
 // ------------------------------------------------------------
 
 const GameRoot = struct {
@@ -26,6 +26,7 @@ const GameRoot = struct {
     pub fn draw(_: *GameRoot) void {
         game_draw_count += 1;
     }
+    pub fn onLoad(_: *GameRoot, _: std.mem.Allocator) !void {}
 };
 
 const PluginA = struct {
@@ -35,6 +36,7 @@ const PluginA = struct {
     pub fn draw(_: *PluginA) void {
         plugin_a_draw_count += 1;
     }
+    pub fn onLoad(_: *PluginA, _: std.mem.Allocator) !void {}
 };
 
 const PluginB = struct {
@@ -44,6 +46,7 @@ const PluginB = struct {
     pub fn draw(_: *PluginB) void {
         plugin_b_draw_count += 1;
     }
+    pub fn onLoad(_: *PluginB, _: std.mem.Allocator) !void {}
 };
 
 const ChildPlugin = struct {
@@ -53,6 +56,7 @@ const ChildPlugin = struct {
     pub fn draw(_: *ChildPlugin) void {
         child_draw_count += 1;
     }
+    pub fn onLoad(_: *ChildPlugin, _: std.mem.Allocator) !void {}
 };
 
 var game_root = GameRoot{};
@@ -90,8 +94,8 @@ test "game update and draw propagate to plugins" {
     var g = try game.Game.init(GameRoot, &game_root, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
-    try g.addPlugin(try plugin.Plugin.init(PluginB, &plugin_b, std.testing.allocator));
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(PluginB, &plugin_b, std.testing.allocator));
 
     g.update();
     g.update();
@@ -116,7 +120,7 @@ test "nested plugin update and draw propagate recursively" {
     var g = try game.Game.init(GameRoot, &game_root, std.testing.allocator);
     defer g.deinit();
 
-    try g.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
+    try g.plugin_handler.addPlugin(try plugin.Plugin.init(PluginA, &plugin_a, std.testing.allocator));
 
     const first = &g.plugin_handler.plugins.items[0];
     try first.plugin_handler.addPlugin(

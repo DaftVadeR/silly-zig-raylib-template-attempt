@@ -33,6 +33,10 @@ pub const PlayerPlugin = struct {
         self.speed = 200;
         self.position.x += @floatFromInt(self.speed);
     }
+
+    pub fn onLoad(_: *PlayerPlugin, _: std.mem.Allocator) !void {
+        std.debug.print("player loaded\n", .{});
+    }
 };
 
 pub var player = PlayerPlugin{
@@ -42,5 +46,9 @@ pub var player = PlayerPlugin{
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
-    return plugin.Plugin.init(PlayerPlugin, &player, alloc);
+    return plugin.Plugin.init(
+        PlayerPlugin,
+        &player,
+        alloc,
+    );
 }

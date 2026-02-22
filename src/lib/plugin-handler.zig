@@ -19,6 +19,8 @@ pub const PluginHandler = struct {
 
     pub fn addPlugin(self: *PluginHandler, p: plugin.Plugin) !void {
         try self.plugins.append(p);
+        const added = &self.plugins.items[self.plugins.items.len - 1];
+        try added.load(self.plugins.allocator);
     }
 
     pub fn update(self: *PluginHandler) void {
