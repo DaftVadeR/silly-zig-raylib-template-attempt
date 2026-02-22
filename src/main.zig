@@ -20,6 +20,7 @@ var app_root = AppRoot{};
 fn getGame(alloc: std.mem.Allocator) !game.Game {
     var g = try game.Game.init(AppRoot, &app_root, alloc);
     try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
+
     return g;
 }
 
