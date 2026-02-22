@@ -2,26 +2,34 @@ const std = @import("std");
 
 const PLUGIN_ALLOCATION_INCREMENTS = 10;
 
-const Game = struct {
+pub const Game = struct {
     allocator: std.mem.Allocator,
     plugin_handler: PluginHandler,
 
     pub fn init(alloc: std.mem.Allocator) !Game {
         return Game{
             .allocator = alloc,
-            .plugin_handler = PluginHandler.init(alloc),
+            .plugin_handler = try PluginHandler.init(alloc),
         };
+    }
+
+    pub fn deinit(self: *Game) !void {
+        self.plugin_handler.deinit();
+        // _ = self.allocator.destroy(self);
     }
 };
 
-const PluginHandler = struct {
+pub const PluginHandler = struct {
     allocator: std.mem.Allocator,
-    plugins_allocated: u16,
-    plugins_added: u16,
+    plugins_allocated: usize,
+    plugins_added: usize,
     plugins: []Plugin,
 
     pub fn init(alloc: std.mem.Allocator) !PluginHandler {
-        const plugins = try alloc.alloc(Plugin, PLUGIN_ALLOCATION_INCREMENTS);
+        const plugins = try alloc.alloc(
+            Plugin,
+            PLUGIN_ALLOCATION_INCREMENTS,
+        );
 
         return PluginHandler{
             .allocator = alloc,
@@ -31,31 +39,40 @@ const PluginHandler = struct {
         };
     }
 
-    pub fn deinit(self: PluginHandler) !void {
-        for (self.plugins) |plugin| {
-            plugin.deinit();
+    pub fn deinit(self: *PluginHandler) void {
+        for (self.plugins) |
+            *p,
+        | {
+            try p.deinit();
         }
 
         self.allocator.free(self.plugins);
     }
 
-    pub fn addPlugin(self: PluginHandler, plugin: Plugin) !void {
+    pub fn addPlugin(self: *PluginHandler, plugin: Plugin) !void {
         //defensive coding but hey.
         if (self.plugins_added >= self.plugins_allocated) {
-            try reAllocatePlugins();
+            try self.reAllocatePlugins();
         }
 
         self.plugins[self.plugins_added] = plugin;
+
+        self.plugins_added += 1;
     }
 
-    pub fn reAllocatePlugins(self: PluginHandler) !void {
-        const newPlugins = try self.allocator.alloc(
+    pub fn reAllocatePlugins(self: *PluginHandler) !void {
+        const newNum =
+            self.plugins_allocated + PLUGIN_ALLOCATION_INCREMENTS;
+
+        var newPlugins = try self.allocator.alloc(
             Plugin,
-            self.plugins_allocated + PLUGIN_ALLOCATION_INCREMENTS,
+            newNum,
         );
 
+        self.plugins_allocated = newNum;
+
         // allocate to new slice
-        for (self.plugins_added, 0..) |p, i| {
+        for (self.plugins, 0..) |p, i| {
             newPlugins[i] = p;
         }
 
@@ -64,7 +81,7 @@ const PluginHandler = struct {
     }
 };
 
-const Plugin = struct {
+pub const Plugin = struct {
     allocator: std.mem.Allocator,
     plugin_handler: PluginHandler,
 
