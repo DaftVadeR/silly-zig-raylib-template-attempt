@@ -1,56 +1,46 @@
 const std = @import("std");
+const plugin = @import("plugin.zig");
+const plugin_handler = @import("plugin-handler.zig");
 
 pub const Game = struct {
     allocator: std.mem.Allocator,
-    plugin_handler: PluginHandler,
+    plugin_handler: plugin_handler.PluginHandler,
 
-    pub fn init(alloc: std.mem.Allocator) !Game {
+    // TODO: add raylib arg to calls
+    update: *const fn () void,
+    draw: *const fn () void,
+
+    pub fn init(
+        alloc: std.mem.Allocator,
+        rootOnUpdate: *const fn () void,
+        rootOnDraw: *const fn () void,
+    ) !Game {
         return Game{
             .allocator = alloc,
-            .plugin_handler = try PluginHandler.init(alloc),
+            .plugin_handler = try plugin_handler.PluginHandler.init(alloc),
+            .update = rootOnUpdate,
+            .draw = rootOnDraw,
         };
     }
 
     pub fn deinit(self: *Game) void {
         self.plugin_handler.deinit();
     }
-};
 
-pub const PluginHandler = struct {
-    plugins: std.array_list.Managed(Plugin),
+    pub fn baseUpdate(self: *Game) void {
+        // anything game-wide
 
-    pub fn init(alloc: std.mem.Allocator) !PluginHandler {
-        return PluginHandler{
-            .plugins = std.array_list.Managed(Plugin).init(alloc),
-        };
+        self.update();
+
+        self.plugin_handler.update();
     }
 
-    pub fn deinit(self: *PluginHandler) void {
-        for (self.plugins.items) |*p| {
-            p.deinit();
-        }
+    pub fn baseDraw(self: *Game) void {
+        // anything game-wide
 
-        self.plugins.deinit();
-    }
+        self.draw();
 
-    pub fn addPlugin(self: *PluginHandler, plugin: Plugin) !void {
-        try self.plugins.append(plugin);
-    }
-};
-
-pub const Plugin = struct {
-    allocator: std.mem.Allocator,
-    plugin_handler: PluginHandler,
-
-    pub fn init(alloc: std.mem.Allocator) !Plugin {
-        return Plugin{
-            .allocator = alloc,
-            .plugin_handler = try PluginHandler.init(alloc),
-        };
-    }
-
-    pub fn deinit(self: *Plugin) void {
-        self.plugin_handler.deinit();
+        self.plugin_handler.draw();
     }
 };
 
