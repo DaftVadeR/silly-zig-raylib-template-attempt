@@ -1,142 +1,133 @@
 const std = @import("std");
 const game = @import("game.zig");
 const plugin = @import("plugin.zig");
-const plugin_handler = @import("plugin-handler.zig");
 
-pub const TestPlugin = struct {
-    num_draw_calls: u16,
-    num_update_calls: u16,
+// ------------------------------------------------------------
+// File-scoped counters — each test resets them before use
+// ------------------------------------------------------------
 
-    fn incrementDrawCount(self: *TestPlugin) void {
-        self.num_draw_calls += 1;
-    }
+var game_update_count: usize = 0;
+var game_draw_count: usize = 0;
 
-    fn incrementUpdateCount(self: *TestPlugin) void {
-        self.num_update_calls += 1;
-    }
+var plugin_a_update_count: usize = 0;
+var plugin_a_draw_count: usize = 0;
 
-    pub fn init() TestPlugin {
-        return .{
-            .num_draw_calls = 0,
-            .num_update_calls = 0,
-        };
-    }
+var plugin_b_update_count: usize = 0;
+var plugin_b_draw_count: usize = 0;
 
-    // reuse for tests
-    pub fn onDraw(self: *TestPlugin) void {
-        self.incrementDrawCount();
-    }
+var child_update_count: usize = 0;
+var child_draw_count: usize = 0;
 
-    pub fn onUpdate(self: *TestPlugin) void {
-        // reuse for tests
-        self.incrementUpdateCount();
-    }
+// ------------------------------------------------------------
+// Callback functions — each just increments its counter
+// ------------------------------------------------------------
 
-    // Used for tests that dont test the initial bootstrapping process
-    pub fn getGame(self: *TestPlugin) !game.Game {
-        const g = try game.Game.init(
-            std.testing.allocator,
-            &self.onUpdate,
-            &self.onDraw,
-        );
-
-        // try g.plugin_handler.addPlugin(
-        //     try plugin.Plugin.init(
-        //         g.allocator,
-        //         self.onUpdate,
-        //         self.onDraw,
-        //     ),
-        // );
-
-        return g;
-    }
-};
-
-test "Test plugin handler update and draw get called" {
-    var t = TestPlugin.init();
-
-    var g = try t.getGame();
-
-    try std.testing.expectEqual(
-        @as(usize, 0),
-        g.plugin_handler.plugins.items.len,
-    );
-
-    for (0..10) |_| {
-        g.update();
-    }
-
-    try std.testing.expectEqual(
-        @as(usize, 10),
-        t.num_update_calls,
-    );
-
-    for (0..10) |_| {
-        g.draw();
-    }
-
-    try std.testing.expectEqual(
-        @as(usize, 10),
-        t.num_draw_calls,
-    );
-
-    // g.plugins[0].
-    //
-    //
-    // try g.plugin_handler.addPlugin(try game.Plugin.init(gpa));
-    //
-    // try std.testing.expectEqual(
-    //     @as(usize, 1),
-    //     g.plugin_handler.plugins.items.len,
-    // );
-
-    g.deinit();
+fn gameUpdate() void {
+    game_update_count += 1;
+}
+fn gameDraw() void {
+    game_draw_count += 1;
 }
 
-// test "Test plugins work with plugins" {
-//     var g = try getGame();
-//
-//     try std.testing.expectEqual(
-//         @as(usize, 1),
-//         g.plugin_handler.plugins.items.len,
-//     );
-//
-//     try std.testing.expectEqual(
-//         g.plugin_handler.plugins.items.len,
-//         @as(usize, 1),
-//     );
-//
-//     var firstPlugin = &g.plugin_handler.plugins.items[0];
-//
-//     // TODO: add convenience methods
-//     try firstPlugin.plugin_handler.addPlugin(
-//         try game.Plugin.init(g.allocator),
-//     );
-//
-//     try std.testing.expectEqual(
-//         @as(usize, 1),
-//         firstPlugin.plugin_handler.plugins.items.len,
-//     );
-//
-//     // Should clean up ALLLLL
-//     g.deinit();
-// }
+fn pluginAUpdate() void {
+    plugin_a_update_count += 1;
+}
+fn pluginADraw() void {
+    plugin_a_draw_count += 1;
+}
 
-// var list: std.ArrayList(i32) = .empty;
-// defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
+fn pluginBUpdate() void {
+    plugin_b_update_count += 1;
+}
+fn pluginBDraw() void {
+    plugin_b_draw_count += 1;
+}
 
-// try list.append(gpa, 42);
+fn childUpdate() void {
+    child_update_count += 1;
+}
+fn childDraw() void {
+    child_draw_count += 1;
+}
 
-// const allocator = gpa.allocator();
+// ------------------------------------------------------------
+// Tests
+// ------------------------------------------------------------
 
-//
-// test "fuzz example" {
-//     const Context = struct {
-//         fn testOne(context: @This(), input: []const u8) anyerror!void {
-//             _ = context;
-//             // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-//             try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
-//         }
-//     };
-//     try std.testing.fuzz(Context{}, Context.testOne, .{});
-// }
+test "game update and draw call their own callbacks" {
+    game_update_count = 0;
+    game_draw_count = 0;
+
+    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
+    defer g.deinit();
+
+    g.update();
+    g.update();
+    g.draw();
+
+    try std.testing.expectEqual(@as(usize, 2), game_update_count);
+    try std.testing.expectEqual(@as(usize, 1), game_draw_count);
+}
+
+test "game update and draw propagate to plugins" {
+    game_update_count = 0;
+    game_draw_count = 0;
+    plugin_a_update_count = 0;
+    plugin_a_draw_count = 0;
+    plugin_b_update_count = 0;
+    plugin_b_draw_count = 0;
+
+    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
+    defer g.deinit();
+
+    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginAUpdate, pluginADraw));
+    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginBUpdate, pluginBDraw));
+
+    g.update();
+    g.update();
+    g.draw();
+
+    try std.testing.expectEqual(@as(usize, 2), game_update_count);
+    try std.testing.expectEqual(@as(usize, 1), game_draw_count);
+
+    try std.testing.expectEqual(@as(usize, 2), plugin_a_update_count);
+    try std.testing.expectEqual(@as(usize, 2), plugin_b_update_count);
+    try std.testing.expectEqual(@as(usize, 1), plugin_a_draw_count);
+    try std.testing.expectEqual(@as(usize, 1), plugin_b_draw_count);
+}
+
+test "nested plugin update and draw propagate recursively" {
+    game_update_count = 0;
+    game_draw_count = 0;
+    plugin_a_update_count = 0;
+    plugin_a_draw_count = 0;
+    child_update_count = 0;
+    child_draw_count = 0;
+
+    var g = try game.Game.init(std.testing.allocator, gameUpdate, gameDraw);
+
+    defer g.deinit();
+
+    try g.addPlugin(try plugin.Plugin.init(std.testing.allocator, pluginAUpdate, pluginADraw));
+
+    // add a child plugin nested inside plugin A
+    const pluginA = &g.plugin_handler.plugins.items[0];
+
+    try pluginA.plugin_handler.addPlugin(
+        try plugin.Plugin.init(std.testing.allocator, childUpdate, childDraw),
+    );
+
+    g.update();
+    g.update();
+    g.draw();
+
+    try std.testing.expectEqual(@as(usize, 2), game_update_count);
+    try std.testing.expectEqual(@as(usize, 1), game_draw_count);
+
+    try std.testing.expectEqual(@as(usize, 2), plugin_a_update_count);
+    try std.testing.expectEqual(@as(usize, 1), plugin_a_draw_count);
+
+    // child must have been called the same number of times as its parent
+    try std.testing.expectEqual(@as(usize, 2), child_update_count);
+    try std.testing.expectEqual(@as(usize, 1), child_draw_count);
+}

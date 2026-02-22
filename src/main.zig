@@ -1,6 +1,14 @@
-// raylib-zig (c) Nikolas Wipper 2023
-
+const std = @import("std");
 const rl = @import("raylib");
+const game = @import("./lib/game.zig");
+
+fn draw() void {
+    std.debug.print("DRAWING", .{});
+}
+
+fn update() void {
+    std.debug.print("UPDATING", .{});
+}
 
 pub fn main() anyerror!void {
     // Initialization
@@ -11,15 +19,29 @@ pub fn main() anyerror!void {
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
     defer rl.closeWindow(); // Close window and OpenGL context
 
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    rl.setTargetFPS(2); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
+
+    var dba: std.heap.DebugAllocator(.{}) = .init;
+    defer _ = dba.deinit();
+    const allocatorBase = dba.allocator();
+
+    // use page allocator later as base, with arena on top
+    var arena = std.heap.ArenaAllocator.init(allocatorBase);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var g = try game.Game.init(allocator, update, draw);
 
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
+        //
         //----------------------------------------------------------------------------------
+        g.update();
+        g.draw();
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -31,4 +53,6 @@ pub fn main() anyerror!void {
         rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
         //----------------------------------------------------------------------------------
     }
+
+    g.deinit();
 }

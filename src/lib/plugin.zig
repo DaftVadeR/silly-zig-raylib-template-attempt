@@ -2,21 +2,19 @@ const std = @import("std");
 const plugin_handler = @import("plugin-handler.zig");
 
 pub const Plugin = struct {
-    allocator: std.mem.Allocator,
+    update_fn: *const fn () void,
+    draw_fn: *const fn () void,
     plugin_handler: plugin_handler.PluginHandler,
-    update: *const fn () void,
-    draw: *const fn () void,
 
     pub fn init(
         alloc: std.mem.Allocator,
-        update: *const fn () void,
-        draw: *const fn () void,
+        update_fn: *const fn () void,
+        draw_fn: *const fn () void,
     ) !Plugin {
         return Plugin{
-            .allocator = alloc,
+            .update_fn = update_fn,
+            .draw_fn = draw_fn,
             .plugin_handler = try plugin_handler.PluginHandler.init(alloc),
-            .update = update,
-            .draw = draw,
         };
     }
 
@@ -24,13 +22,13 @@ pub const Plugin = struct {
         self.plugin_handler.deinit();
     }
 
-    pub fn baseUpdate(self: *Plugin) void {
-        // anything else?
-        self.update();
+    pub fn update(self: *Plugin) void {
+        self.update_fn();
+        self.plugin_handler.update();
     }
 
-    pub fn baseDraw(self: *Plugin) void {
-        // anything else?
-        self.draw();
+    pub fn draw(self: *Plugin) void {
+        self.draw_fn();
+        self.plugin_handler.draw();
     }
 };
