@@ -31,7 +31,9 @@ pub fn build(b: *std.Build) !void {
 
         const install_dir: std.Build.InstallDir = .{ .custom = "web" };
         const emcc_flags = emsdk.emccDefaultFlags(b.allocator, .{ .optimize = optimize });
-        const emcc_settings = emsdk.emccDefaultSettings(b.allocator, .{ .optimize = optimize });
+        var emcc_settings = emsdk.emccDefaultSettings(b.allocator, .{ .optimize = optimize });
+        try emcc_settings.put("ALLOW_MEMORY_GROWTH", "1");
+        try emcc_settings.put("INITIAL_MEMORY", "67108864"); // 64MB
 
         const emcc_step = emsdk.emccStep(b, raylib_artifact, wasm, .{
             .optimize = optimize,
