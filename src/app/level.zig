@@ -8,6 +8,8 @@ const Tilemap = struct {
     texture: rl.Texture2D,
 };
 
+pub const WALL_SIZE: f32 = 50;
+
 // Just draw random tiles from tilemaps for now.
 pub const LevelPlugin = struct {
     tilemaps: ?[]Tilemap, // tilemaps to draw from, in order of addition to slice
@@ -26,10 +28,10 @@ pub const LevelPlugin = struct {
 
         // draw surrounding wall
         rl.drawRectangle(
-            @intFromFloat(self.bounds_min.x - 50),
-            @intFromFloat(self.bounds_min.y - 50),
-            @intFromFloat(self.bounds.x + 100),
-            @intFromFloat(self.bounds.y + 100),
+            @intFromFloat(self.bounds_min.x - WALL_SIZE),
+            @intFromFloat(self.bounds_min.y - WALL_SIZE),
+            @intFromFloat(self.bounds.x + WALL_SIZE * 2),
+            @intFromFloat(self.bounds.y + WALL_SIZE * 2),
             rl.Color.dark_brown,
         );
 
