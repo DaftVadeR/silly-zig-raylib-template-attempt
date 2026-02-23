@@ -4,7 +4,7 @@ const plugin = @import("../lib/plugin.zig");
 const player = @import("player.zig");
 
 // Handles movement input and animation state only — no player data ownership.
-const PlayerMovementPlugin = struct {
+pub const PlayerMovementPlugin = struct {
     player: *player.PlayerPlugin,
 
     pub fn update(self: *PlayerMovementPlugin) void {
@@ -43,7 +43,13 @@ const PlayerMovementPlugin = struct {
 
     pub fn draw(_: *PlayerMovementPlugin) void {}
 
-    pub fn onLoad(_: *PlayerMovementPlugin, _: std.mem.Allocator) !void {}
+    pub fn onLoad(_: *PlayerMovementPlugin, _: std.mem.Allocator) void {}
+
+    pub fn onUnload(_: *PlayerMovementPlugin, _: std.mem.Allocator) void {
+        // if (self.player_detail) |*pd| {
+        //     pd.deinit();
+        // }
+    }
 };
 
 pub var movement = PlayerMovementPlugin{

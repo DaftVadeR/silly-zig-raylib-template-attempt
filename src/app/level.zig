@@ -4,16 +4,21 @@ const plugin = @import("../lib/plugin.zig");
 const player = @import("player.zig");
 const common = @import("common.zig");
 
-// Handles movement input and animation state only — no player data ownership.
-const LevelPlugin = struct {
-    player: *player.PlayerPlugin,
+const Tilemap = struct {
+    texture: rl.Texture2D,
+};
+
+// Just draw random tiles from tilemaps for now.
+pub const LevelPlugin = struct {
+    tilemaps: ?[]Tilemap, // tilemaps to draw from, in order of addition to slice
+    // player: *player.PlayerPlugin,
     bounds: rl.Vector2,
     bounds_min: rl.Vector2,
 
     pub fn update(self: *LevelPlugin) void {
-        // _ = self;
-        std.debug.print("Level Plugin updating {}\n", .{self.player.position});
-        self.player.position = rl.Vector2.clamp(self.player.position, self.bounds_min, self.bounds);
+        _ = self;
+
+        std.debug.print("Level Plugin updating\n", .{});
     }
 
     pub fn draw(self: *LevelPlugin) void {
@@ -37,16 +42,40 @@ const LevelPlugin = struct {
         );
     }
 
-    pub fn onLoad(self: *LevelPlugin, _: std.mem.Allocator) !void {
+    pub fn onUnload(self: *LevelPlugin, alloc: std.mem.Allocator) void {
+        if (self.tilemaps) |tilemaps| {
+            for (tilemaps) |tilemap| {
+                rl.unloadTexture(tilemap.texture);
+            }
+        }
+
+        if (self.tilemaps) |tilemaps| {
+            alloc.free(tilemaps);
+        }
+    }
+
+    pub fn onLoad(self: *LevelPlugin, alloc: std.mem.Allocator) void {
         std.debug.print("Level Plugin loaded\n", .{});
 
-        // center player in the level bounds on load
-        self.player.position = rl.Vector2{ .x = common.P1080.x / 2.0, .y = common.P1080.y / 2.0 };
+        self.tilemaps = alloc.alloc(Tilemap, 1) catch |err| {
+            std.debug.print("Error allocating tilemaps: {}\n", .{err});
+            unreachable;
+        };
+
+        const texture = rl.loadTexture("resources/images/level/tx_tileset_grass.png") catch |err| {
+            std.debug.print("Error loading tilemap texture: {}\n", .{err});
+            unreachable;
+        };
+
+        if (self.tilemaps) |*tilemaps| {
+            tilemaps.*[0] = Tilemap{
+                .texture = texture,
+            };
+        }
     }
 };
 
 pub var level = LevelPlugin{
-    .player = &player.player,
     .bounds_min = rl.Vector2{
         .x = 0,
         .y = 0,
@@ -55,6 +84,7 @@ pub var level = LevelPlugin{
         .x = 2000,
         .y = 2000,
     },
+    .tilemaps = null,
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {

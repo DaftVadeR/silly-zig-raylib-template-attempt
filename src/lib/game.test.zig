@@ -6,7 +6,8 @@ const plugin = @import("plugin.zig");
 const Noop = struct {
     pub fn update(_: *Noop) void {}
     pub fn draw(_: *Noop) void {}
-    pub fn onLoad(_: *Noop, _: std.mem.Allocator) !void {}
+    pub fn onLoad(_: *Noop, _: std.mem.Allocator) void {}
+    pub fn onUnload(_: *Noop, _: std.mem.Allocator) void {}
 };
 
 var noop = Noop{};

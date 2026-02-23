@@ -2,24 +2,29 @@ const std = @import("std");
 const plugin = @import("plugin.zig");
 
 pub const PluginHandler = struct {
+    allocator: std.mem.Allocator,
     plugins: std.array_list.Managed(plugin.Plugin),
 
     pub fn init(alloc: std.mem.Allocator) !PluginHandler {
         return PluginHandler{
+            .allocator = alloc,
             .plugins = std.array_list.Managed(plugin.Plugin).init(alloc),
         };
     }
 
     pub fn deinit(self: *PluginHandler) void {
         for (self.plugins.items) |*p| {
-            p.deinit();
+            p.deinit(self.allocator);
         }
+
         self.plugins.deinit();
     }
 
     pub fn addPlugin(self: *PluginHandler, p: plugin.Plugin) !void {
         try self.plugins.append(p);
+
         const added = &self.plugins.items[self.plugins.items.len - 1];
+
         try added.load(self.plugins.allocator);
     }
 
