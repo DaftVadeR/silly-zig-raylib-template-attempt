@@ -14,7 +14,12 @@ pub const PlayerPlugin = struct {
 
     pub fn draw(self: *PlayerPlugin) void {
         if (self.player_detail) |*pd| {
-            pd.anims[pd.active_anim].draw(self.position, 5.0, rl.Color.white, self.transform.x);
+            pd.anims[pd.active_anim].draw(
+                self.position,
+                5.0,
+                rl.Color.white,
+                self.transform.x,
+            );
         }
     }
 
@@ -25,7 +30,11 @@ pub const PlayerPlugin = struct {
                 const playerWidth = pd.anims[pd.active_anim].frame_w;
                 const playerHeight = pd.anims[pd.active_anim].frame_h;
 
-                self.position = rl.Vector2.clamp(self.position, lvl.bounds_min, lvl.bounds.subtract(rl.Vector2{ .x = level.WALL_SIZE + playerWidth * 1.5, .y = level.WALL_SIZE + playerHeight * 1.5 }));
+                self.position = rl.Vector2.clamp(
+                    self.position,
+                    lvl.bounds_min,
+                    lvl.bounds.subtract(rl.Vector2{ .x = level.WALL_SIZE + playerWidth * 1.5, .y = level.WALL_SIZE + playerHeight * 1.5 }),
+                );
             }
         }
     }

@@ -14,23 +14,23 @@ const Tileset = struct {
 
 pub const WALL_SIZE: f32 = 50;
 
+// Match the player's draw scale (player draws at 5.0 in player.zig:17)
+const TILE_SCALE: f32 = 5.0;
+
 // Just draw random tiles from tilemaps for now.
 pub const LevelPlugin = struct {
     // keep as slice in case we want multiple layers
     tilesets: ?[]Tileset, // to randomly draw from, in order of addition to slice
-    // player: *player.PlayerPlugin,
     bounds: rl.Vector2,
     bounds_min: rl.Vector2,
+    // Pre-rendered tilemap — drawn once, blitted each frame.
+    render_texture: ?rl.RenderTexture2D,
 
     pub fn update(self: *LevelPlugin) void {
         _ = self;
-
-        std.debug.print("Level Plugin updating\n", .{});
     }
 
     pub fn draw(self: *LevelPlugin) void {
-        std.debug.print("Level Plugin drawing\n", .{});
-
         // draw surrounding wall
         rl.drawRectangle(
             @intFromFloat(self.bounds_min.x - WALL_SIZE),
@@ -48,77 +48,115 @@ pub const LevelPlugin = struct {
             rl.Color.green,
         );
 
-        self.drawTextures();
+        // Single draw call — blit the pre-rendered tilemap
+        if (self.render_texture) |rt| {
+            // RenderTexture2D is y-flipped in OpenGL, so we flip the source height
+            rl.drawTexturePro(
+                rt.texture,
+                rl.Rectangle{
+                    .x = 0,
+                    .y = 0,
+                    .width = @floatFromInt(rt.texture.width),
+                    .height = -@as(f32, @floatFromInt(rt.texture.height)),
+                },
+                rl.Rectangle{
+                    .x = self.bounds_min.x,
+                    .y = self.bounds_min.y,
+                    .width = self.bounds.x,
+                    .height = self.bounds.y,
+                },
+                rl.Vector2{ .x = 0, .y = 0 },
+                0,
+                rl.Color.white,
+            );
+        }
     }
 
-    // generate array of tile indexes, to the count of the destination number of tiles.
+    // Generate array of random tile indexes for each tileset,
+    // then pre-render them all onto a single RenderTexture2D.
     pub fn generateTextures(self: *LevelPlugin, alloc: std.mem.Allocator) !void {
-        if (self.tilesets) |tilemaps| {
-            for (tilemaps, 0..) |*tilemap, tmi| {
-                const numTilesFrom = tilemap.cols * tilemap.rows;
+        if (self.tilesets == null) return;
+        const tilemaps = self.tilesets.?;
 
-                const width: i32 = @intFromFloat(self.bounds.x);
-                const height: i32 = @intFromFloat(self.bounds.y);
+        // Scaled tile size in world units
+        const tile_size = tilemaps[0].tile_size;
+        const scaled_tile: f32 = @as(f32, @floatFromInt(tile_size)) * TILE_SCALE;
 
-                const numTilesToDraw: usize = @intCast(@divFloor(width, tilemap.tile_size) * @divFloor(height, tilemap.tile_size)); // assumes it starts at 0,0
-                tilemap.generated_tiles = try alloc.alloc(i32, numTilesToDraw);
+        // How many tiles fit across and down the world bounds
+        const cols_per_row: i32 = @intFromFloat(self.bounds.x / scaled_tile);
+        const rows_total: i32 = @intFromFloat(self.bounds.y / scaled_tile);
+        const num_tiles: usize = @intCast(cols_per_row * rows_total);
 
-                std.debug.print("Generating tile {}/{}\n", .{ tmi, numTilesToDraw });
+        // Generate random tile indexes for each tileset
+        for (tilemaps, 0..) |*tilemap, tmi| {
+            const num_source_tiles = tilemap.cols * tilemap.rows;
+            tilemap.generated_tiles = try alloc.alloc(i32, num_tiles);
 
-                if (tilemap.generated_tiles) |*gen| {
-                    for (0..numTilesToDraw) |t| {
-                        const randomTileIndex = rl.getRandomValue(0, numTilesFrom - 1);
+            std.debug.print("Generating tileset {} - {d} tiles ({d} cols x {d} rows)\n", .{ tmi, num_tiles, cols_per_row, rows_total });
 
-                        // map the source tile to the destination tile
-                        gen.*[@intCast(t)] = randomTileIndex;
-                    }
+            if (tilemap.generated_tiles) |gen| {
+                for (0..num_tiles) |t| {
+                    gen[t] = rl.getRandomValue(0, num_source_tiles - 1);
+                }
+                std.debug.print("Generating done {d}\n", .{gen.len});
+            }
+        }
+
+        // Pre-render all tiles onto a RenderTexture2D (once, not per frame)
+        const rt_width: i32 = @intFromFloat(self.bounds.x);
+        const rt_height: i32 = @intFromFloat(self.bounds.y);
+        const rt = rl.loadRenderTexture(rt_width, rt_height) catch |err| {
+            std.debug.print("Error loading render texture: {}\n", .{err});
+            unreachable;
+        };
+
+        rl.beginTextureMode(rt);
+        rl.clearBackground(rl.Color.blank);
+
+        for (tilemaps) |tilemap| {
+            if (tilemap.generated_tiles) |tiles| {
+                for (tiles, 0..) |source_tile_idx, i| {
+                    const idx: i32 = @intCast(i);
+
+                    // Source rectangle: which tile in the tileset texture
+                    const src_col = @mod(source_tile_idx, tilemap.cols);
+                    const src_row = @divFloor(source_tile_idx, tilemap.cols);
+
+                    // Dest position: where in the world grid
+                    const dest_col = @mod(idx, cols_per_row);
+                    const dest_row = @divFloor(idx, cols_per_row);
+
+                    rl.drawTexturePro(
+                        tilemap.texture,
+                        rl.Rectangle{
+                            .x = @floatFromInt(src_col * tile_size),
+                            .y = @floatFromInt(src_row * tile_size),
+                            .width = @floatFromInt(tile_size),
+                            .height = @floatFromInt(tile_size),
+                        },
+                        rl.Rectangle{
+                            .x = @as(f32, @floatFromInt(dest_col)) * scaled_tile,
+                            .y = @as(f32, @floatFromInt(dest_row)) * scaled_tile,
+                            .width = scaled_tile,
+                            .height = scaled_tile,
+                        },
+                        rl.Vector2{ .x = 0, .y = 0 },
+                        0,
+                        rl.Color.white,
+                    );
                 }
             }
         }
-    }
 
-    pub fn drawTextures(self: *LevelPlugin) void {
-        // const randSeed = std.Random.float(@intFromFloat(rl.getTime()));
-
-        if (self.tilesets) |tilemaps| {
-            for (tilemaps) |tilemap| {
-                if (tilemap.generated_tiles) |tiles| {
-                    for (tiles) |tileNum| {
-                        const row = @divFloor(tileNum, tilemap.cols);
-                        const col = @mod(tileNum, tilemap.cols);
-
-                        const x = col * tilemap.tile_size;
-                        const y = row * tilemap.tile_size;
-
-                        const i32CastTileNum: i32 = @intCast(tileNum);
-
-                        const toX = @mod(i32CastTileNum, tilemap.tile_size) * tilemap.tile_size;
-                        const toY = @divFloor(i32CastTileNum, tilemap.cols);
-                        // (tileNum % tilemap.tile_size) / self.bounds.x) * tilemap.tile_size
-
-                        rl.drawTextureRec(
-                            tilemap.texture,
-                            rl.Rectangle{
-                                .x = @floatFromInt(x),
-                                .y = @floatFromInt(y),
-                                .width = @floatFromInt(tilemap.tile_size),
-                                .height = @floatFromInt(tilemap.tile_size),
-                            },
-                            rl.Vector2{
-                                .x = @floatFromInt(toX),
-                                .y = @floatFromInt(toY),
-                            },
-                            rl.Color.white,
-                        );
-                    }
-                }
-
-                // self.drawTilemap(tilemap, num);
-            }
-        }
+        rl.endTextureMode();
+        self.render_texture = rt;
     }
 
     pub fn onUnload(self: *LevelPlugin, alloc: std.mem.Allocator) void {
+        if (self.render_texture) |rt| {
+            rl.unloadRenderTexture(rt);
+        }
+
         if (self.tilesets) |tilemaps| {
             for (tilemaps) |tilemap| {
                 rl.unloadTexture(tilemap.texture);
@@ -145,8 +183,8 @@ pub const LevelPlugin = struct {
             unreachable;
         };
 
-        if (self.tilesets) |*tilemaps| {
-            tilemaps.*[0] = Tileset{
+        if (self.tilesets) |tilemaps| {
+            tilemaps[0] = Tileset{
                 .texture = texture,
                 .cols = 16,
                 .rows = 16,
@@ -154,7 +192,9 @@ pub const LevelPlugin = struct {
                 .generated_tiles = null,
             };
 
-            generateTextures(self, alloc) catch unreachable;
+            std.debug.print("allocating TileSets for : 0\n", .{});
+
+            self.generateTextures(alloc) catch unreachable;
         }
     }
 };
@@ -169,6 +209,7 @@ pub var level = LevelPlugin{
         .y = 2000,
     },
     .tilesets = null,
+    .render_texture = null,
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
