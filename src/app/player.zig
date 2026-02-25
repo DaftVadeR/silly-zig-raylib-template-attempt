@@ -16,7 +16,6 @@ pub const PlayerPlugin = struct {
         if (self.player_detail) |*pd| {
             pd.anims[pd.active_anim].draw(
                 self.position,
-                5.0,
                 rl.Color.white,
                 self.transform.x,
             );
@@ -25,15 +24,18 @@ pub const PlayerPlugin = struct {
 
     pub fn update(self: *PlayerPlugin) void {
         if (self.level) |lvl| {
-            // clamp player position to level bounds
             if (self.player_detail) |pd| {
-                const playerWidth = pd.anims[pd.active_anim].frame_w;
-                const playerHeight = pd.anims[pd.active_anim].frame_h;
+                const player_w = pd.anims[pd.active_anim].frame_w;
+                const player_h = pd.anims[pd.active_anim].frame_h;
 
+                // clamp player position within level bounds, accounting for wall and sprite size
                 self.position = rl.Vector2.clamp(
                     self.position,
                     lvl.bounds_min,
-                    lvl.bounds.subtract(rl.Vector2{ .x = level.WALL_SIZE + playerWidth * 1.5, .y = level.WALL_SIZE + playerHeight * 1.5 }),
+                    lvl.bounds.subtract(rl.Vector2{
+                        .x = level.WALL_SIZE + player_w,
+                        .y = level.WALL_SIZE + player_h,
+                    }),
                 );
             }
         }

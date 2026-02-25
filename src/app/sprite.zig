@@ -48,7 +48,7 @@ pub const SpriteAnim = struct {
     }
 
     /// facingX: 1 = right (default), -1 = left (flips horizontally)
-    pub fn draw(self: SpriteAnim, pos: rl.Vector2, scale: f32, tint: rl.Color, facingX: f32) void {
+    pub fn draw(self: SpriteAnim, pos: rl.Vector2, tint: rl.Color, facingX: f32) void {
         const actualFrame = self.from_frame + self.current_frame;
         const col = actualFrame % self.cols;
         const row = actualFrame / self.cols;
@@ -66,8 +66,8 @@ pub const SpriteAnim = struct {
         const dest = rl.Rectangle{
             .x = pos.x,
             .y = pos.y,
-            .width = self.frame_w * scale,
-            .height = self.frame_h * scale,
+            .width = self.frame_w,
+            .height = self.frame_h,
         };
 
         rl.drawTexturePro(

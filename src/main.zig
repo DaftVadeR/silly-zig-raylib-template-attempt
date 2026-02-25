@@ -48,7 +48,7 @@ fn initGame(alloc: std.mem.Allocator) !void {
         .target = player.player.position,
         .offset = .{ .x = 0, .y = 0 },
         .rotation = 0,
-        .zoom = 1,
+        .zoom = 5.0,
     };
 }
 
@@ -88,7 +88,7 @@ pub fn main() anyerror!void {
     } else {
         // Native path: DebugAllocator, blocking while loop, full cleanup.
         rl.toggleFullscreen();
-        rl.setTargetFPS(120);
+        rl.setTargetFPS(100);
 
         defer rl.closeWindow();
 
