@@ -39,10 +39,14 @@ pub const SpriteAnim = struct {
     }
 
     pub fn update(self: *SpriteAnim, dt: f32) void {
-        self.timer += dt;
+        self.timer += @min(dt, 0.25); // cap at 250ms to prevent runaway
 
-        if (self.timer >= 1.0 / self.fps) {
-            self.timer -= 1.0 / self.fps;
+        const frameDuration = 1.0 / self.fps;
+
+        // due to framerate issues on wasm, we may get surpluses over time - use while in case it does suddenly
+        // spike to more than 1.
+        while (self.timer >= frameDuration) {
+            self.timer -= frameDuration;
             self.current_frame = (self.current_frame + 1) % self.total_frames;
         }
     }

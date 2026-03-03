@@ -24,8 +24,9 @@ pub const LevelPlugin = struct {
     bounds_min: rl.Vector2,
     render_texture: ?rl.RenderTexture2D,
 
-    pub fn update(self: *LevelPlugin) void {
+    pub fn update(self: *LevelPlugin, alloc: std.mem.Allocator) void {
         _ = self;
+        _ = alloc;
     }
 
     pub fn draw(self: *LevelPlugin) void {
@@ -201,10 +202,12 @@ pub const LevelPlugin = struct {
             unreachable;
         };
 
-        const texture = rl.loadTexture("resources/images/level/tx_tileset_grass.png") catch |err| {
+        const texture = rl.Texture.init("resources/images/level/tx_tileset_grass.png") catch |err| {
             std.debug.print("Error loading tilemap texture: {}\n", .{err});
             unreachable;
         };
+
+        rl.setTextureFilter(texture, rl.TextureFilter.point);
 
         if (self.tilesets) |tilesets| {
             tilesets[0] = Tileset{

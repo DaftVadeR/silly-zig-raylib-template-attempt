@@ -22,7 +22,9 @@ pub const PlayerPlugin = struct {
         }
     }
 
-    pub fn update(self: *PlayerPlugin) void {
+    pub fn update(self: *PlayerPlugin, alloc: std.mem.Allocator) void {
+        const frameTime = rl.getFrameTime();
+
         if (self.level) |lvl| {
             if (self.player_detail) |pd| {
                 const player_w = pd.anims[pd.active_anim].frame_w;
@@ -39,11 +41,15 @@ pub const PlayerPlugin = struct {
                 );
             }
         }
+
+        if (self.player_detail) |*pd| {
+            pd.update(alloc, frameTime);
+        }
     }
 
-    pub fn onUnload(self: *PlayerPlugin, _: std.mem.Allocator) void {
+    pub fn onUnload(self: *PlayerPlugin, alloc: std.mem.Allocator) void {
         if (self.player_detail) |*pd| {
-            pd.deinit();
+            pd.deinit(alloc);
         }
     }
 

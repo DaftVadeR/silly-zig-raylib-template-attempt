@@ -16,6 +16,13 @@ const common = @import("./app/common.zig");
 const player = @import("./app/player.zig");
 const level = @import("./app/level.zig");
 const player_movement = @import("./app/player-movement.zig");
+
+var screenWidth = common.P720.x;
+var screenHeight = common.P720.y;
+
+var screenWidthFloat: f32 = @floatFromInt(common.P720.x);
+var screenHeightFloat: f32 = @floatFromInt(common.P720.y);
+
 // const camera = @import("./app/camera.zig");
 
 const AppRoot = struct {
@@ -34,7 +41,7 @@ var app_root = AppRoot{};
 var g: game.Game = undefined;
 var camera2d: rl.Camera2D = undefined;
 
-fn initGame(alloc: std.mem.Allocator) !void {
+fn initGame(alloc: std.mem.Allocator, zoom: f32) !void {
     g = try game.Game.init(AppRoot, &app_root, alloc);
 
     try g.plugin_handler.addPlugin(try level.createPlugin(alloc));
@@ -48,47 +55,75 @@ fn initGame(alloc: std.mem.Allocator) !void {
         .target = player.player.position,
         .offset = .{ .x = 0, .y = 0 },
         .rotation = 0,
-        .zoom = 5.0,
+        .zoom = zoom,
     };
 }
 
-fn updateDrawFrame() callconv(.c) void {
+fn updateDrawFrameForWasm() callconv(.c) void {
+    updateDrawFrame();
+}
+
+fn updateDrawFrame() void {
     g.update();
 
     rl.beginDrawing();
-    defer rl.endDrawing();
 
     rl.clearBackground(.ray_white);
 
     camera2d.begin();
 
-    camera2d.offset = rl.Vector2{ .x = common.P1080.x / 2.0, .y = common.P1080.y / 2.0 };
+    camera2d.offset = rl.Vector2{ .x = screenWidthFloat / 2.0, .y = screenHeightFloat / 2.0 };
     camera2d.target = player.player.position;
 
     g.draw();
 
     camera2d.end();
+
+    rl.endDrawing();
 }
 
 pub fn main() anyerror!void {
-    const screenWidth = common.P1080.x;
-    const screenHeight = common.P1080.y;
-
-    rl.initWindow(screenWidth, screenHeight, "Simple Zig template");
-
     if (is_wasm) {
+        rl.setTargetFPS(60);
+
+        rl.setConfigFlags(.{
+            .vsync_hint = true,
+            .msaa_4x_hint = false,
+        });
+
+        rl.initWindow(
+            screenWidth,
+            screenHeight,
+            "Simple Zig template",
+        );
+
         // WASM path: c_allocator (backed by emmalloc), emscripten main loop callback.
         // main() returns after setting the loop — no defers for cleanup.
         const allocator = std.heap.c_allocator;
 
-        try initGame(allocator);
+        try initGame(allocator, 3);
 
         const emscripten = std.os.emscripten;
-        emscripten.emscripten_set_main_loop(updateDrawFrame, 0, 1);
+
+        emscripten.emscripten_set_main_loop(updateDrawFrameForWasm, 0, 1);
     } else {
+        screenWidth = common.P1080.x;
+        screenHeight = common.P1080.y;
+
+        screenWidthFloat = @floatFromInt(common.P1080.x);
+        screenHeightFloat = @floatFromInt(common.P1080.y);
+
+        rl.setTargetFPS(60);
+
+        rl.setConfigFlags(.{
+            .vsync_hint = true,
+            .msaa_4x_hint = false,
+        });
+
+        rl.initWindow(screenWidth, screenHeight, "Simple Zig template");
+
         // Native path: DebugAllocator, blocking while loop, full cleanup.
         rl.toggleFullscreen();
-        rl.setTargetFPS(100);
 
         defer rl.closeWindow();
 
@@ -101,7 +136,7 @@ pub fn main() anyerror!void {
 
         const allocator = arena.allocator();
 
-        try initGame(allocator);
+        try initGame(allocator, 5);
         defer g.deinit();
 
         while (!rl.windowShouldClose()) {

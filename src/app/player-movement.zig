@@ -7,7 +7,7 @@ const player = @import("player.zig");
 pub const PlayerMovementPlugin = struct {
     player: *player.PlayerPlugin,
 
-    pub fn update(self: *PlayerMovementPlugin) void {
+    pub fn update(self: *PlayerMovementPlugin, _: std.mem.Allocator) void {
         var inputDir = rl.Vector2.zero();
         const frameTime = rl.getFrameTime();
 
