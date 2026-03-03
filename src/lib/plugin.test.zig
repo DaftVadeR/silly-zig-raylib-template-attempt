@@ -96,8 +96,9 @@ test "plugin update and draw call the bound instance" {
     var p = try plugin.Plugin.init(MockA, &a, std.testing.allocator);
     defer p.deinit(std.testing.allocator);
 
-    p.update();
-    p.update();
+    p.update(std.testing.allocator);
+    p.update(std.testing.allocator);
+
     p.draw();
 
     try std.testing.expectEqual(@as(usize, 2), a.update_calls);

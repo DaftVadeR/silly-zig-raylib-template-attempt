@@ -9,6 +9,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+
     const raylib = raylib_dep.module("raylib");
     const raylib_artifact = raylib_dep.artifact("raylib");
 
@@ -17,6 +18,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+
     exe_mod.addImport("raylib", raylib);
 
     const run_step = b.step("run", "Run the app");
@@ -59,6 +61,7 @@ pub fn build(b: *std.Build) !void {
             .name = "daftzig",
             .root_module = exe_mod,
         });
+
         b.installArtifact(exe);
 
         const run_cmd = b.addRunArtifact(exe);

@@ -30,7 +30,7 @@ pub const PluginHandler = struct {
 
     pub fn update(self: *PluginHandler) void {
         for (self.plugins.items) |*p| {
-            p.update();
+            p.update(self.allocator);
         }
     }
 

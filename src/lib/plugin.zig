@@ -3,7 +3,7 @@ const plugin_handler = @import("plugin-handler.zig");
 
 pub const Plugin = struct {
     ctx: *anyopaque,
-    update_fn: *const fn (*anyopaque) void,
+    update_fn: *const fn (*anyopaque, std.mem.Allocator) void,
     draw_fn: *const fn (*anyopaque) void,
     load_fn: *const fn (*anyopaque, std.mem.Allocator) void,
     unload_fn: *const fn (*anyopaque, std.mem.Allocator) void,
@@ -15,9 +15,9 @@ pub const Plugin = struct {
     /// The caller must keep the instance alive for the lifetime of the plugin.
     pub fn init(comptime T: type, instance: *T, alloc: std.mem.Allocator) !Plugin {
         const gen = struct {
-            fn update(ctx: *anyopaque) void {
+            fn update(ctx: *anyopaque, a: std.mem.Allocator) void {
                 const self: *T = @ptrCast(@alignCast(ctx));
-                self.update();
+                self.update(a);
             }
             fn draw(ctx: *anyopaque) void {
                 const self: *T = @ptrCast(@alignCast(ctx));
@@ -53,8 +53,8 @@ pub const Plugin = struct {
         self.unload_fn(self.ctx, alloc);
     }
 
-    pub fn update(self: *Plugin) void {
-        self.update_fn(self.ctx);
+    pub fn update(self: *Plugin, alloc: std.mem.Allocator) void {
+        self.update_fn(self.ctx, alloc);
         self.plugin_handler.update();
     }
 
