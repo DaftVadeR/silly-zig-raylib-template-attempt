@@ -1,6 +1,7 @@
 const std = @import("std");
 const sprite = @import("sprite.zig");
 const weapon = @import("weapon.zig");
+const player = @import("player.zig");
 const rl = @import("raylib");
 
 pub const PlayerKind = enum {
@@ -36,9 +37,20 @@ pub const PlayerClass = struct {
         self.weapons.deinit(alloc);
     }
 
-    pub fn update(self: *PlayerClass, alloc: std.mem.Allocator, frametime: f32) void {
+    pub fn update(
+        self: *PlayerClass,
+        alloc: std.mem.Allocator,
+        frametime: f32,
+        position: rl.Vector2,
+    ) void {
         for (self.weapons.items) |*wpn| {
-            wpn.update(alloc, frametime);
+            wpn.update(alloc, frametime, position);
+        }
+    }
+
+    pub fn draw(self: *PlayerClass) void {
+        for (self.weapons.items) |*wpn| {
+            wpn.draw();
         }
     }
 };
@@ -47,7 +59,10 @@ pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
     var anims = try alloc.alloc(sprite.SpriteAnim, 2);
 
     var weapons: std.ArrayList(weapon.Weapon) = .empty;
-    try weapons.append(alloc, weapon.getEnergyWeapon());
+    try weapons.append(alloc, weapon.getEnergyWeapon(
+        player.player.position,
+        player.player.rotation,
+    ));
 
     // Build PlayerClass first so texture has a stable address.
     // Anims are initialised with a placeholder — fixupAnims patches the pointer below.

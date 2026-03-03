@@ -10,6 +10,7 @@ pub const PlayerPlugin = struct {
     position: rl.Vector2,
     transform: rl.Vector2,
     player_detail: ?player_class.PlayerClass,
+    rotation: f32,
     level: ?*level.LevelPlugin, // optional as player needs to be loaded first
 
     pub fn draw(self: *PlayerPlugin) void {
@@ -19,6 +20,7 @@ pub const PlayerPlugin = struct {
                 rl.Color.white,
                 self.transform.x,
             );
+            pd.draw();
         }
     }
 
@@ -43,7 +45,7 @@ pub const PlayerPlugin = struct {
         }
 
         if (self.player_detail) |*pd| {
-            pd.update(alloc, frameTime);
+            pd.update(alloc, frameTime, self.position);
         }
     }
 
@@ -84,6 +86,7 @@ pub var player = PlayerPlugin{
     .transform = rl.Vector2{ .x = 1, .y = 0 }, // x: 1 = facing right, -1 = facing left
     .player_detail = null,
     .level = null, // optional to avoid double initializatoin dependency
+    .rotation = 0,
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {
