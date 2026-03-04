@@ -92,10 +92,10 @@ pub const PlayerPlugin = struct {
 
 pub var player = PlayerPlugin{
     .position = rl.Vector2{ .x = 0, .y = 5 },
+    .rotation = 0,
     .transform = rl.Vector2{ .x = 1, .y = 0 }, // x: 1 = facing right, -1 = facing left
     .player_detail = null,
     .level = null, // optional to avoid double initializatoin dependency
-    .rotation = 0,
 };
 
 pub fn createPlugin(alloc: std.mem.Allocator) !plugin.Plugin {

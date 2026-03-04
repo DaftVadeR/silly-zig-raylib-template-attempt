@@ -51,6 +51,17 @@ pub const Weapon = struct {
 
         // update projectiles
         for (self.projectiles.items, 0..) |*projectile, i| {
+            const distance = self.position.subtract(projectile.position); // update weapon position to player position, so projectiles spawn from player
+            //
+            // const distanceX = projectile.position.x - self.position.x; // simple distance calculation, can be improved with actual distance formula
+            // const distance = projectile.position.x - self.position.x; // simple distance calculation, can be improved with actual distance formula
+
+            // compare distance to range on weapon. if exceeded, set projectil to disabled.
+            //
+            //if(weapon.range <= projectile.)
+            // {}
+            _ = distance; // just to avoid unused variable warning for now
+
             if (!projectile.enabled) {
                 _ = self.projectiles.swapRemove(i);
             }

@@ -60,12 +60,18 @@ pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
     var anims = try alloc.alloc(sprite.SpriteAnim, 2);
 
     var weapons: std.ArrayList(weapon.Weapon) = .empty;
+
     try weapons.append(alloc, weapon.getEnergyWeapon(
         player.player.position,
         player.player.rotation,
     ));
 
     try weapons.append(alloc, weapon.getFireballWeapon(
+        player.player.position,
+        player.player.rotation,
+    ));
+
+    try weapons.append(alloc, weapon.getIceBlockWeapon(
         player.player.position,
         player.player.rotation,
     ));

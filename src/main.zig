@@ -16,6 +16,7 @@ const common = @import("./app/common.zig");
 const player = @import("./app/player.zig");
 const level = @import("./app/level.zig");
 const player_movement = @import("./app/player-movement.zig");
+const enemy_spawner = @import("./app/enemy-spawner.zig");
 
 var screenWidth = common.P720.x;
 var screenHeight = common.P720.y;
@@ -47,6 +48,7 @@ fn initGame(alloc: std.mem.Allocator) !void {
     try g.plugin_handler.addPlugin(try level.createPlugin(alloc));
     try g.plugin_handler.addPlugin(try player_movement.createPlugin(alloc));
     try g.plugin_handler.addPlugin(try player.createPlugin(alloc));
+    try g.plugin_handler.addPlugin(try enemy_spawner.createPlugin(alloc));
 
     // broken
     // try g.plugin_handler.addPlugin(try camera.createPlugin(alloc));
