@@ -2,8 +2,22 @@ const std = @import("std");
 const weapon = @import("weapon.zig");
 const rl = @import("raylib");
 
+pub const DamageType = enum {
+    Physical,
+    Fire,
+    Ice,
+    Lightning,
+};
+
+pub const ImpactType = enum {
+    AOE,
+    Direct,
+};
+
 pub const ProjectileType = enum {
     EnergyProjectile,
+    FireBall,
+    IceBlock,
 };
 
 pub const Projectile = struct {
@@ -12,14 +26,26 @@ pub const Projectile = struct {
     position: rl.Vector2,
     rotation: f32,
     speed: f32,
+    damage_type: DamageType,
+    impact_type: ImpactType,
 
-    pub fn init(origin: rl.Vector2, rotation: f32, speed: f32) Projectile {
+    pub fn init(origin: rl.Vector2, rotation: f32, speed: f32, projectileType: ProjectileType) Projectile {
         return Projectile{
             .enabled = true,
-            .type = .EnergyProjectile,
+            .type = projectileType,
             .position = origin,
             .rotation = rotation,
             .speed = speed,
+            .impact_type = switch (projectileType) {
+                .EnergyProjectile => ImpactType.Direct,
+                .FireBall => ImpactType.Direct,
+                .IceBlock => ImpactType.Direct,
+            },
+            .damage_type = switch (projectileType) {
+                .EnergyProjectile => DamageType.Physical,
+                .FireBall => DamageType.Fire,
+                .IceBlock => DamageType.Ice,
+            },
         };
     }
 
@@ -59,6 +85,12 @@ pub const Projectile = struct {
                     2,
                     .red,
                 );
+            },
+            .FireBall => {
+                rl.drawCircleV(self.position, 5, .orange);
+            },
+            .IceBlock => {
+                rl.drawRectangleV(self.position, rl.Vector2{ .x = 10, .y = 10 }, .blue);
             },
         }
     }

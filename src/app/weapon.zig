@@ -6,8 +6,8 @@ pub const Weapon = struct {
     name: []const u8,
     damage: i32,
     range: f32,
-    damage_type: DamageType,
-    impact_type: ImpactType,
+    weapon_type: WeaponType,
+    projectile_type: p.ProjectileType,
     speed: f32,
     fire_speed: f32,
     time_since_fire: f32,
@@ -41,6 +41,7 @@ pub const Weapon = struct {
                 self.position,
                 self.rotation,
                 self.speed,
+                self.projectile_type,
             );
 
             self.projectiles.append(alloc, newProjectile) catch unreachable;
@@ -65,16 +66,50 @@ pub const Weapon = struct {
 
 pub const WeaponType = enum {
     EnergyWeapon,
+    IceBlockWeapon,
+    FireballWeapon,
 };
 
 pub fn getEnergyWeapon(playerPosition: rl.Vector2, playerRotation: f32) Weapon {
     return Weapon{
         .name = "Energy Weapon",
         .damage = 10,
+        .range = 15,
+        .weapon_type = .EnergyWeapon,
+        .projectile_type = .EnergyProjectile,
+        .time_since_fire = 0,
+        .speed = 0.7,
+        .projectiles = .empty,
+        .position = playerPosition, // remember to update
+        .rotation = playerRotation,
+        .fire_speed = 0.7,
+    };
+}
+
+pub fn getFireballWeapon(playerPosition: rl.Vector2, playerRotation: f32) Weapon {
+    return Weapon{
+        .name = "Fireball Weapon",
+        .damage = 20,
         .range = 10,
-        .damage_type = .Lightning,
-        .impact_type = .Direct,
-        .speed = 0.5,
+        .weapon_type = .FireballWeapon,
+        .projectile_type = .FireBall,
+        .speed = 0.4,
+        .time_since_fire = 0,
+        .projectiles = .empty,
+        .position = playerPosition, // remember to update
+        .rotation = playerRotation,
+        .fire_speed = 0.5,
+    };
+}
+
+pub fn getIceBlockWeapon(playerPosition: rl.Vector2, playerRotation: f32) Weapon {
+    return Weapon{
+        .name = "Ice block Weapon",
+        .damage = 40,
+        .range = 10,
+        .weapon_type = .IceBlockWeapon,
+        .projectile_type = .IceBlock,
+        .speed = 0.4,
         .time_since_fire = 0,
         .projectiles = .empty,
         .position = playerPosition, // remember to update
@@ -95,15 +130,3 @@ pub fn getEnergyWeapon(playerPosition: rl.Vector2, playerRotation: f32) Weapon {
 //         .projectiles = std.ArrayList(Projectile).init(std.heap.page_allocator),
 //     };
 // }
-
-pub const DamageType = enum {
-    Physical,
-    Fire,
-    Ice,
-    Lightning,
-};
-
-pub const ImpactType = enum {
-    AOE,
-    Direct,
-};

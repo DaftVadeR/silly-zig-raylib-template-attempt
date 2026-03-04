@@ -65,6 +65,11 @@ pub fn getKnight(alloc: std.mem.Allocator, kind: PlayerKind) !PlayerClass {
         player.player.rotation,
     ));
 
+    try weapons.append(alloc, weapon.getFireballWeapon(
+        player.player.position,
+        player.player.rotation,
+    ));
+
     // Build PlayerClass first so texture has a stable address.
     // Anims are initialised with a placeholder — fixupAnims patches the pointer below.
     const texture = try rl.Texture.init(
