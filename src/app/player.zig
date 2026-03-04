@@ -5,6 +5,7 @@ const weapon = @import("weapon.zig");
 const sprite = @import("sprite.zig");
 const level = @import("level.zig");
 const player_class = @import("player-class.zig");
+const common = @import("common.zig");
 
 pub const PlayerPlugin = struct {
     position: rl.Vector2,
@@ -45,7 +46,15 @@ pub const PlayerPlugin = struct {
         }
 
         if (self.player_detail) |*pd| {
-            pd.update(alloc, frameTime, self.position);
+            const centerOfPlayerX = self.position.x + @as(f32, pd.anims[pd.active_anim].frame_w) / 2.0;
+            const centerOfPlayerY = self.position.y + @as(f32, pd.anims[pd.active_anim].frame_h) / 2.0;
+
+            pd.update(
+                alloc,
+                frameTime,
+                rl.Vector2{ .x = centerOfPlayerX, .y = centerOfPlayerY },
+                self.rotation,
+            );
         }
     }
 

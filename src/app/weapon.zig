@@ -27,8 +27,9 @@ pub const Weapon = struct {
         }
     }
 
-    pub fn update(self: *Weapon, alloc: std.mem.Allocator, frametime: f32, position: rl.Vector2) void {
+    pub fn update(self: *Weapon, alloc: std.mem.Allocator, frametime: f32, position: rl.Vector2, rotation: f32) void {
         self.position = position; // update weapon position to player position, so projectiles spawn from player
+        self.rotation = rotation;
 
         self.time_since_fire += frametime;
 

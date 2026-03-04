@@ -41,7 +41,7 @@ var app_root = AppRoot{};
 var g: game.Game = undefined;
 var camera2d: rl.Camera2D = undefined;
 
-fn initGame(alloc: std.mem.Allocator, zoom: f32) !void {
+fn initGame(alloc: std.mem.Allocator) !void {
     g = try game.Game.init(AppRoot, &app_root, alloc);
 
     try g.plugin_handler.addPlugin(try level.createPlugin(alloc));
@@ -55,7 +55,7 @@ fn initGame(alloc: std.mem.Allocator, zoom: f32) !void {
         .target = player.player.position,
         .offset = .{ .x = 0, .y = 0 },
         .rotation = 0,
-        .zoom = zoom,
+        .zoom = common.ZOOM,
     };
 }
 
@@ -101,7 +101,7 @@ pub fn main() anyerror!void {
         // main() returns after setting the loop — no defers for cleanup.
         const allocator = std.heap.c_allocator;
 
-        try initGame(allocator, 3);
+        try initGame(allocator);
 
         const emscripten = std.os.emscripten;
 
@@ -136,7 +136,8 @@ pub fn main() anyerror!void {
 
         const allocator = arena.allocator();
 
-        try initGame(allocator, 5);
+        try initGame(allocator);
+
         defer g.deinit();
 
         while (!rl.windowShouldClose()) {

@@ -42,9 +42,10 @@ pub const PlayerClass = struct {
         alloc: std.mem.Allocator,
         frametime: f32,
         position: rl.Vector2,
+        rotation: f32,
     ) void {
         for (self.weapons.items) |*wpn| {
-            wpn.update(alloc, frametime, position);
+            wpn.update(alloc, frametime, position, rotation);
         }
     }
 

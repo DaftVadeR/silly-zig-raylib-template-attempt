@@ -37,10 +37,12 @@ pub const PlayerMovementPlugin = struct {
             // Normalize so diagonal movement is not faster than cardinal.
             const normalized = rl.Vector2.normalize(inputDir);
 
-            self.player.rotation = std.math.atan2(normalized.y, normalized.x);
+            if (normalized.x != 0 or normalized.y != 0) {
+                self.player.rotation = std.math.atan2(normalized.y, normalized.x);
 
-            self.player.position.x += pd.attributes.speed * frameTime * normalized.x;
-            self.player.position.y += pd.attributes.speed * frameTime * normalized.y;
+                self.player.position.x += pd.attributes.speed * frameTime * normalized.x;
+                self.player.position.y += pd.attributes.speed * frameTime * normalized.y;
+            }
         }
     }
 

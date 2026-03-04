@@ -34,28 +34,29 @@ pub const Projectile = struct {
         const end_y = self.position.y + length * std.math.sin(self.rotation) * self.speed;
 
         const endPos = rl.Vector2{ .x = end_x, .y = end_y };
-        _ = frametime; // just to avoid unused variable warning for now;
-        _ = endPos; // just to avoid unused variable warning for now
+        // _ = frametime; // just to avoid unused variable warning for now;
+        // _ = endPos; // just to avoid unused variable warning for now
 
-        // self.position = rl.Vector2{
-        //     .x = endPos.x + frametime * self.speed,
-        //     .y = endPos.y + self.position.y + frametime * self.speed,
-        // };
+        self.position = rl.Vector2{
+            .x = endPos.x + frametime * self.speed,
+            .y = endPos.y + frametime * self.speed,
+        };
 
         // do stuff with projectile movement for all projectiles
     }
 
     pub fn draw(self: *Projectile) void {
-        std.debug.print("Drawing projectile at position: ({}, {})\n", .{ self.position.x, self.position.y });
+        // std.debug.print("Drawing projectile at position: ({}, {})\n", .{ self.position.x, self.position.y });
         // draw the projectile based on type
         switch (self.type) {
             .EnergyProjectile => {
-                rl.drawLineV(
+                rl.drawLineEx(
                     self.position,
                     rl.Vector2{
                         .x = self.position.x + 10 * std.math.cos(self.rotation),
                         .y = self.position.y + 10 * std.math.sin(self.rotation),
                     },
+                    2,
                     .red,
                 );
             },
